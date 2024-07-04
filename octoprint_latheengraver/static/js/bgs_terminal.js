@@ -6,10 +6,10 @@ $(function () {
       self.settings = viewModels[1];
 
       self.onBeforeBinding = function() {
-        self.terminal.activeFilters(self.settings.settings.plugins.bettergrblsupport.activeFilters());
+        self.terminal.activeFilters(self.settings.settings.plugins.latheengraver.activeFilters());
 
         self.terminal.activeFilters.subscribe(function (newValue) {
-          self.settings.settings.plugins.bettergrblsupport.activeFilters(newValue);
+          self.settings.settings.plugins.latheengraver.activeFilters(newValue);
           self.settings.saveData();
         });
       }

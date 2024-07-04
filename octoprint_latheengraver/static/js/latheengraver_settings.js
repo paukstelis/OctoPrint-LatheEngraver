@@ -5,7 +5,7 @@
  * License: Apache 2.0
  */
 $(function() {
-    function BettergrblsupportSettingsViewModel(parameters) {
+    function LatheEngraverSettingsViewModel(parameters) {
       var self = this;
       // var $body = $('body');
 
@@ -23,7 +23,7 @@ $(function() {
       self.fluidSettings = ko.observableArray([]);
       self.updateFluid = function(key, value, oldvalue) {
         if (value != oldvalue) {
-          self.settings.plugins.bettergrblsupport.fluidSettings[key](value);
+          self.settings.plugins.latheengraver.fluidSettings[key](value);
         }
       };
 
@@ -41,7 +41,7 @@ $(function() {
 
         if (value != oldvalue) {
           $.ajax({
-            url: API_BASEURL + "plugin/bettergrblsupport",
+            url: API_BASEURL + "plugin/latheengraver",
             type: "POST",
             dataType: "json",
             data: JSON.stringify({
@@ -98,7 +98,7 @@ $(function() {
 
       self.backupSettings = function() {
         $.ajax({
-          url: API_BASEURL + "plugin/bettergrblsupport",
+          url: API_BASEURL + "plugin/latheengraver",
           type: "POST",
           dataType: "json",
           data: JSON.stringify({
@@ -134,7 +134,7 @@ $(function() {
 
       self.restoreSettings = function() {
         $.ajax({
-          url: API_BASEURL + "plugin/bettergrblsupport",
+          url: API_BASEURL + "plugin/latheengraver",
           type: "POST",
           dataType: "json",
           data: JSON.stringify({
@@ -178,19 +178,19 @@ $(function() {
         // initialize stuff here
         self.settings = self.settingsViewModel.settings;
 
-        var settingsText = self.settings.plugins.bettergrblsupport.grblSettingsText();
+        var settingsText = self.settings.plugins.latheengraver.grblSettingsText();
         if (settingsText != null) {
           self.pushGrblSettings(settingsText);
         }
 
-        self.settings.plugins.bettergrblsupport.grblSettingsText.subscribe(function(newValue) {
+        self.settings.plugins.latheengraver.grblSettingsText.subscribe(function(newValue) {
           if (settingsText != null) {
             self.pushGrblSettings(newValue);
           }
         });
 
-        self.isMultiPoint(self.settings.plugins.bettergrblsupport.zprobeMethod() == "MULTI");
-        self.settings.plugins.bettergrblsupport.zprobeMethod.subscribe(function(newValue) {
+        self.isMultiPoint(self.settings.plugins.latheengraver.zprobeMethod() == "MULTI");
+        self.settings.plugins.latheengraver.zprobeMethod.subscribe(function(newValue) {
           if (newValue == "MULTI") {
             self.isMultiPoint(true);
           } else {
@@ -228,18 +228,18 @@ $(function() {
 
       // establish our fluid settings state
       self.onSettingsShown = function() {
-        if (self.settings.plugins.bettergrblsupport.fluidYaml()) {
-          self.fluidSettings(self.mapFluidToArray(self.settings.plugins.bettergrblsupport.fluidSettings));
+        if (self.settings.plugins.latheengraver.fluidYaml()) {
+          self.fluidSettings(self.mapFluidToArray(self.settings.plugins.latheengraver.fluidSettings));
         }  
       };
 
       // move our updated fluid settings to our plugin settings
       self.onSettingsBeforeSave = function () {
-        if (self.settings.plugins.bettergrblsupport.fluidYaml()) {
+        if (self.settings.plugins.latheengraver.fluidYaml()) {
           for (var i in self.fluidSettings()) {
             if (self.fluidSettings()[i].value != self.fluidSettings()[i].oldvalue) {
               console.log("updating key=" + self.fluidSettings()[i].key + " value=" + self.fluidSettings()[i].value + " oldvalue=" + self.fluidSettings()[i].oldvalue);
-              self.settings.plugins.bettergrblsupport.fluidSettings[self.fluidSettings()[i].key](self.fluidSettings()[i].value);
+              self.settings.plugins.latheengraver.fluidSettings[self.fluidSettings()[i].key](self.fluidSettings()[i].value);
             }
           }
         }
@@ -294,16 +294,16 @@ $(function() {
      * and a full list of the available options.
      */
     // OCTOPRINT_VIEWMODELS.push({
-    //     construct: BettergrblsupportViewModel,
+    //     construct: latheengraverViewModel,
     //     // ViewModels your plugin depends on, e.g. loginStateViewModel, settingsViewModel, ...
     //     dependencies: [ /* "loginStateViewModel", "settingsViewModel" */ ],
-    //     // Elements to bind to, e.g. #settings_plugin_bettergrblsupport, #tab_plugin_bettergrblsupport, ...
+    //     // Elements to bind to, e.g. #settings_plugin_latheengraver, #tab_plugin_latheengraver, ...
     //     elements: [ /* ... */ ]
     // });
 
     OCTOPRINT_VIEWMODELS.push([
-      BettergrblsupportSettingsViewModel,
+      LatheEngraverSettingsViewModel,
       [ "settingsViewModel", "loginStateViewModel" ],
-        "#settings_plugin_bettergrblsupport"
+        "#settings_plugin_latheengraver"
       ]);
 });
