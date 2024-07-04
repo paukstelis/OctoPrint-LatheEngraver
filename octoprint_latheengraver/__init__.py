@@ -238,7 +238,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             frame_length = 100,
             frame_width = 100,
             frame_origin = None,
-            distance = float(0),
+            distance = float(1),
             control_distance = float(0),
             is_printing = False,
             is_operational = False,
@@ -289,8 +289,8 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             activeFilters = [],
             fluidYaml = None,
             fluidSettings = {},
-            hasA = False,
-            hasB = False
+            hasA = True,
+            hasB = True
         )
 
 
@@ -734,9 +734,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 self.bangle = self.grblB
                 #invert bangle with X-axis inversion
                 bangle = math.radians(self.bangle)*-1
-                #bangle = math.radians(self.bangle)
-               
-                
+
                 mod_x = self.queue_X*math.cos(bangle) + (self.queue_Z - zmod)*math.sin(bangle)
                 mod_z = -self.queue_X*math.sin(bangle) + (self.queue_Z - zmod)*math.cos(bangle)
                 mod_z_init = -self.queue_X*math.sin(bangle) + (0 - zmod)*math.cos(bangle)
@@ -809,7 +807,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         diff = math.sqrt(((self.maxarc/2)**2) - (aval**2))
         zmod = modDiam - (modDiam*math.cos(diff))
         return zmod*self.arcadd
-
+    #Not currently used, might want to revisit later
     def rot_trans_adjust(self, bvalues):
         #get absolute positions first
         bangle = self.grblB + bvalues
@@ -1009,7 +1007,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         
         if cmd.upper() == "SCANDONE":
             self.xscan = False
-            #do Blender call here!
+            #do Blender call here, should probably have a setting available to check if blender is present?
             os.system("blender -b -P {0}/{1} -- {2} {3} {2}".format(self.datafolder, "blender_probe_stl.py",\
                                                                     os.path.join(self.datafolder, self.datafile),\
                                                                     self.zProbeDiam))                                                                    
