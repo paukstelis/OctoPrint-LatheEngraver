@@ -49,7 +49,7 @@ import yaml
 import math
 import requests
 
-class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
+class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                               octoprint.plugin.SimpleApiPlugin,
                               octoprint.plugin.AssetPlugin,
                               octoprint.plugin.TemplatePlugin,
@@ -445,16 +445,16 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 disabledTabs.remove("control")
 
         # ensure i am always the first tab
-        if "plugin_bettergrblsupport" in orderedTabs:
-            orderedTabs.remove("plugin_bettergrblsupport")
+        if "plugin_latheengraversupport" in orderedTabs:
+            orderedTabs.remove("plugin_latheengraver")
         if self.reOrderTabs:
-            orderedTabs.insert(0, "plugin_bettergrblsupport")
+            orderedTabs.insert(0, "plugin_latheengraver")
 
         # ensure i am at the top of the sidebar
-        if "plugin_bettergrblsupport" in orderedSidebar:
-            orderedSidebar.remove("plugin_bettergrblsupport")
+        if "plugin_latheengraver" in orderedSidebar:
+            orderedSidebar.remove("plugin_latheengraver")
         if self.reOrderSidebar:
-            orderedSidebar.insert(0, "plugin_bettergrblsupport")
+            orderedSidebar.insert(0, "plugin_latheengraver")
 
         self._settings.global_set(["plugins", "_disabled"], disabledPlugins)
         self._settings.global_set(["appearance", "components", "disabled", "tab"], disabledTabs)
@@ -626,10 +626,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # Define your plugin's asset files to automatically include in the
         # core UI here.
-        return dict(js=['js/bettergrblsupport.js', 'js/bettergrblsupport_settings.js', 'js/bgs_framing.js', 
-                        'js/bettergrblsupport_wizard.js', 'js/bgs_terminal.js'],
-                    css=['css/bettergrblsupport.css', 'css/bettergrblsupport_settings.css', 'css/bgs_framing.css'],
-                    less=['less/bettergrblsupport.less', "less/bettergrblsupport.less", "less/bgs_framing.less"])
+        return dict(js=['js/latheengraver.js', 'js/latheengraver_settings.js', 'js/bgs_framing.js', 
+                        'js/latheengraver_wizard.js', 'js/bgs_terminal.js'],
+                    css=['css/latheengraver.css', 'css/latheengraver_settings.css', 'css/bgs_framing.css'],
+                    less=['less/latheengraver.less', "less/latheengraver.less", "less/bgs_framing.less"])
 
 
     # #~~ TemplatePlugin mixin
@@ -639,13 +639,13 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         return [
             {
                     "type": "settings",
-                    "template": "bettergrblsupport_settings.jinja2",
+                    "template": "latheengraver_settings.jinja2",
                     "custom_bindings": True
             },
             {
                     "type": "wizard",
                     "name": "Better Grbl Support",
-                    "template": "bettergrblsupport_wizard.jinja2",
+                    "template": "latheengraver_wizard.jinja2",
                     "custom_bindings": True
             }
         ]
@@ -1795,7 +1795,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # dev channel check
         if useDevChannel:
-            return dict(bettergrblsupport=dict(
+            return dict(latheengraver=dict(
                 displayName='LatheEngraver Support (Development Branch)',
                 type='github_commit',
                 user='paukstelis',
@@ -1806,7 +1806,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 pip='https://github.com/paukstelis/Octoprint-LatheEngraver/archive/refs/heads/devel.zip',
                 restart='octoprint'))
         else:
-            return dict(bettergrblsupport=dict(
+            return dict(latheengraver=dict(
                 displayName='LatheEngraver Support',
                 displayVersion=self._plugin_version,
                 type='github_release',
@@ -1837,7 +1837,7 @@ __plugin_pythoncompat__ = ">=2.7,<4"
 
 def __plugin_load__():
     global __plugin_implementation__
-    __plugin_implementation__ = BetterGrblSupportPlugin()
+    __plugin_implementation__ = LatheEngraverPlugin()
 
     global __plugin_hooks__
     __plugin_hooks__ = \

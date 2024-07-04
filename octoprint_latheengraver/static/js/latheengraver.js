@@ -5,7 +5,7 @@
  * License: Apache 2.0
  */
 $(function() {
-    function BettergrblsupportViewModel(parameters) {
+    function LatheengraverViewModel(parameters) {
         var self = this;
 
         self.sessionId = guid();
@@ -64,7 +64,7 @@ $(function() {
 
         self.controls = ko.observableArray([]);
 
-        tab = document.getElementById("tab_plugin_bettergrblsupport_link");
+        tab = document.getElementById("tab_plugin_latheengraver_link");
         tab.innerHTML = tab.innerHTML.replace("Better Grbl Support", "Grbl Control");
 
         self._disableWebcam = function() {
@@ -86,7 +86,7 @@ $(function() {
 
         self._enableWebcam = function() {
             if (OctoPrint.coreui.selectedTab != undefined &&
-                (OctoPrint.coreui.selectedTab != "#tab_plugin_bettergrblsupport" ||
+                (OctoPrint.coreui.selectedTab != "#tab_plugin_latheengraver" ||
                     !OctoPrint.coreui.browserTabVisible)
             ) {
                 return;
@@ -129,9 +129,9 @@ $(function() {
         };
 
         self.onTabChange = function(current, previous) {
-            if (current == "#tab_plugin_bettergrblsupport") {
+            if (current == "#tab_plugin_latheengraver") {
                 self._enableWebcam();
-            } else if (previous == "#tab_plugin_bettergrblsupport") {
+            } else if (previous == "#tab_plugin_latheengraver") {
                 self._disableWebcam();
             }
         };
@@ -250,7 +250,7 @@ $(function() {
         }
 
         self.toggleWeak = function() {
-            OctoPrint.simpleApiCommand("bettergrblsupport", "toggleWeak")
+            OctoPrint.simpleApiCommand("latheengraver", "toggleWeak")
                 .done(
                     function(data) {
                         var btn = document.getElementById("grblLaserButton");
@@ -316,7 +316,7 @@ $(function() {
 
         self.moveHead = function(direction, distance) {
             if (distance == undefined) distance = self.distance();
-            OctoPrint.simpleApiCommand("bettergrblsupport", "move", { "sessionId": self.sessionId,
+            OctoPrint.simpleApiCommand("latheengraver", "move", { "sessionId": self.sessionId,
                                                                       "direction": direction,
                                                                       "distance": distance,
                                                                       "axis": self.origin_axis() })
@@ -366,7 +366,7 @@ $(function() {
                         buttons: [{
                                 text: "CONFIRM",
                                 click: function(notice) {
-                                    OctoPrint.simpleApiCommand("bettergrblsupport", command)
+                                    OctoPrint.simpleApiCommand("latheengraver", command)
                                         .fail(
                                             function(data, status) {
                                                 new PNotify({
@@ -395,7 +395,7 @@ $(function() {
                 return;
             }
 
-            OctoPrint.simpleApiCommand("bettergrblsupport", command, { "origin_axis": self.origin_axis(),
+            OctoPrint.simpleApiCommand("latheengraver", command, { "origin_axis": self.origin_axis(),
                                                                        "feed_rate": self.feedRate(),
                                                                        "plunge_rate": self.plungeRate(),
                                                                        "power_rate": self.powerRate() })
@@ -421,16 +421,16 @@ $(function() {
         };
 
         self.onBeforeBinding = function() {
-            self.is_printing(self.settings.settings.plugins.bettergrblsupport.is_printing());
-            self.is_operational(self.settings.settings.plugins.bettergrblsupport.is_operational());
+            self.is_printing(self.settings.settings.plugins.latheengraver.is_printing());
+            self.is_operational(self.settings.settings.plugins.latheengraver.is_operational());
 
-            self.distance(self.settings.settings.plugins.bettergrblsupport.control_distance());
-            self.settings.settings.plugins.bettergrblsupport.control_distance.subscribe(function(newValue) {
+            self.distance(self.settings.settings.plugins.latheengraver.control_distance());
+            self.settings.settings.plugins.latheengraver.control_distance.subscribe(function(newValue) {
                 self.distance(newValue);
             });
 
-            if (self.settings.settings.plugins.bettergrblsupport.hasA() == true) { self.origin_axes.push("A"); }
-            if (self.settings.settings.plugins.bettergrblsupport.hasB() == true) { self.origin_axes.push("B"); }
+            if (self.settings.settings.plugins.latheengraver.hasA() == true) { self.origin_axes.push("A"); }
+            if (self.settings.settings.plugins.latheengraver.hasB() == true) { self.origin_axes.push("B"); }
     
             self.notifications.requestData = self.overrideRequestData;
             self.notifications.clear = self.overrideClear;
@@ -438,11 +438,11 @@ $(function() {
         };
 
         self.overrideRequestData = function() {
-            OctoPrint.simpleApiCommand("bettergrblsupport", "getNotifications").done(self.notifications.fromResponse);
+            OctoPrint.simpleApiCommand("latheengraver", "getNotifications").done(self.notifications.fromResponse);
         };
 
         self.overrideClear = function() {
-            OctoPrint.simpleApiCommand("bettergrblsupport", "clearNotifications");    
+            OctoPrint.simpleApiCommand("latheengraver", "clearNotifications");    
         };
 
         self.overrideOnDataUpdaterPluginMessage = function(plugin, data) {
@@ -504,7 +504,7 @@ $(function() {
         };
 
         self.onDataUpdaterPluginMessage = function(plugin, data) {
-            if (plugin == 'bettergrblsupport' && data.type == 'grbl_state') {
+            if (plugin == 'latheengraver' && data.type == 'grbl_state') {
                 if (data.mode != undefined) self.mode(data.mode);
 
                 if (data.state != undefined && !(self.is_printing() && data.state == "Idle")) {
@@ -560,7 +560,7 @@ $(function() {
                 return
             }
 
-            if (plugin == 'bettergrblsupport' && data.type == 'simple_notify') {
+            if (plugin == 'latheengraver' && data.type == 'simple_notify') {
                 if (data.sessionId == undefined || data.sessionId == self.sessionId) {
                     new PNotify({
                         title: data.title,
@@ -580,7 +580,7 @@ $(function() {
                 return
             }
 
-            if (plugin == 'bettergrblsupport' && data.type == 'restart_required') {
+            if (plugin == 'latheengraver' && data.type == 'restart_required') {
                 new PNotify({
                     title: "Restart Required",
                     text: "Octoprint may need to be restarted for your changes to take full effect.",
@@ -597,10 +597,10 @@ $(function() {
                 return
             }
 
-            if (plugin == 'bettergrblsupport' && data.type == 'xy_probe') {
+            if (plugin == 'latheengraver' && data.type == 'xy_probe') {
                 if (data.sessionId != undefined && data.sessionId == self.sessionId) {
                   var text = "";
-                  var confirmActions = self.settings.settings.plugins.bettergrblsupport.zProbeConfirmActions();
+                  var confirmActions = self.settings.settings.plugins.latheengraver.zProbeConfirmActions();
 
                   if (!confirmActions && ((data.axes == "XY" && data.step >= 0) || data.axes == "ALL")) {
                     OctoPrint.control.sendGcode(data.gcode);
@@ -631,7 +631,7 @@ $(function() {
                                   text: "CANCEL",
                                   click: function(notice) {
                                       // we need to inform the plugin we bailed
-                                        OctoPrint.simpleApiCommand("bettergrblsupport", "cancelProbe")
+                                        OctoPrint.simpleApiCommand("latheengraver", "cancelProbe")
                                             .fail(
                                                 function(data, status) {
                                                     new PNotify({
@@ -655,10 +655,10 @@ $(function() {
                 }
             }
 
-            if (plugin == 'bettergrblsupport' && data.type == 'simple_zprobe') {
+            if (plugin == 'latheengraver' && data.type == 'simple_zprobe') {
                 if (data.sessionId != undefined && data.sessionId == self.sessionId) {
                     var text = "";
-                    var confirmActions = self.settings.settings.plugins.bettergrblsupport.zProbeConfirmActions();
+                    var confirmActions = self.settings.settings.plugins.latheengraver.zProbeConfirmActions();
 
                     // if (!confirmActions) {
                     //   OctoPrint.control.sendGcode(data.gcode);
@@ -689,7 +689,7 @@ $(function() {
                                     text: "CANCEL",
                                     click: function(notice) {
                                         // we need to inform the plugin we bailed
-                                        OctoPrint.simpleApiCommand("bettergrblsupport", "cancelProbe")
+                                        OctoPrint.simpleApiCommand("latheengraver", "cancelProbe")
                                             .fail(
                                                 function(data, status) {
                                                     new PNotify({
@@ -713,11 +713,11 @@ $(function() {
                 }
             }
 
-            if (plugin == 'bettergrblsupport' && data.type == 'multipoint_zprobe') {
+            if (plugin == 'latheengraver' && data.type == 'multipoint_zprobe') {
                 if (data.sessionId != undefined && data.sessionId == self.sessionId) {
                     var instruction = data.instruction;
                     var text = "";
-                    var confirmActions = self.settings.settings.plugins.bettergrblsupport.zProbeConfirmActions();
+                    var confirmActions = self.settings.settings.plugins.latheengraver.zProbeConfirmActions();
 
                     if (!confirmActions && instruction.action == "move") {
                         OctoPrint.control.sendGcode(instruction.gcode);
@@ -756,7 +756,7 @@ $(function() {
                                     text: "CANCEL",
                                     click: function(notice) {
                                         // we need to inform the plugin we bailed
-                                        OctoPrint.simpleApiCommand("bettergrblsupport", "cancelProbe")
+                                        OctoPrint.simpleApiCommand("latheengraver", "cancelProbe")
                                             .fail(
                                                 function(data, status) {
                                                     new PNotify({
@@ -780,7 +780,7 @@ $(function() {
                 }
             }
 
-            if (plugin == "bettergrblsupport" && data.type == "notification") {
+            if (plugin == "latheengraver" && data.type == "notification") {
                 self.notifications.onDataUpdaterPluginMessage("action_command_notification", {message: data.message})                    
             }
         }
@@ -847,7 +847,7 @@ $(function() {
                 overridesPanel.show();
             }
 
-            $('#sidebar_plugin_bettergrblsupport_wrapper').toggle();
+            $('#sidebar_plugin_latheengraver_wrapper').toggle();
             $('#sidebar_plugin_action_command_notification_wrapper').toggle();
         }
 
@@ -1260,7 +1260,7 @@ $(function() {
         $(document).ready(function() {
             $(this).keydown(function(e) {
                 if (OctoPrint.coreui.selectedTab != undefined &&
-                        OctoPrint.coreui.selectedTab == "#tab_plugin_bettergrblsupport" &&
+                        OctoPrint.coreui.selectedTab == "#tab_plugin_latheengraver" &&
                         OctoPrint.coreui.browserTabVisible && $(":focus").length == 0) {
                     self.onKeyDown(undefined, e);
                 }
@@ -1541,8 +1541,8 @@ $(function() {
     }
 
     OCTOPRINT_VIEWMODELS.push([
-        BettergrblsupportViewModel,
+        LatheengraverViewModel,
         ["settingsViewModel", "loginStateViewModel", "accessViewModel", "actionCommandNotificationViewModel"],
-        ["#tab_plugin_bettergrblsupport"]
+        ["#tab_plugin_latheengraver"]
     ]);
 });
