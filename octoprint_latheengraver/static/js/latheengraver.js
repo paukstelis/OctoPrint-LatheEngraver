@@ -65,7 +65,7 @@ $(function() {
         self.controls = ko.observableArray([]);
 
         tab = document.getElementById("tab_plugin_latheengraver_link");
-        tab.innerHTML = tab.innerHTML.replace("LatheEngraver Support", "Control");
+        tab.innerHTML = tab.innerHTML.replaceAll("LatheEngraver Support", "Control");
 
         self._disableWebcam = function() {
             // only disable webcam stream if tab is out of focus for more than 5s, otherwise we might cause

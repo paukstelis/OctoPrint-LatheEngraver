@@ -312,7 +312,8 @@ def on_event(_plugin, event, payload):
 
         if _plugin.autoCooldown:
             activate_auto_cooldown(_plugin)
-
+        #Get Machine positions to log starting positions
+        _plugin._printer.commands(["$10=156","?"],force=True)
         return
 
     # Print ended (finished / failed / cancelled)
@@ -622,7 +623,8 @@ def process_grbl_status_msg(_plugin, msg):
     if not match is None:
         _plugin.grblSpeed = round(float(match.groups(1)[0]))
         _plugin.grblPowerLevel = float(match.groups(1)[1])
-
+    if _plugin.grblstate == "Run":
+        logpos = True
     _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_state",
                                                                     mode=_plugin.grblMode,
                                                                     state=_plugin.grblState,
