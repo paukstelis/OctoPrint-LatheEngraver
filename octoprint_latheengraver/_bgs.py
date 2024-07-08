@@ -623,8 +623,7 @@ def process_grbl_status_msg(_plugin, msg):
     if not match is None:
         _plugin.grblSpeed = round(float(match.groups(1)[0]))
         _plugin.grblPowerLevel = float(match.groups(1)[1])
-    if _plugin.grblstate == "Run":
-        logpos = True
+
     _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_state",
                                                                     mode=_plugin.grblMode,
                                                                     state=_plugin.grblState,
