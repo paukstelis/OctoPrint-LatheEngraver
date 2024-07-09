@@ -313,7 +313,7 @@ def on_event(_plugin, event, payload):
         if _plugin.autoCooldown:
             activate_auto_cooldown(_plugin)
         #Get Machine positions to log starting positions
-        _plugin._printer.commands(["$10=156","?"],force=True)
+        #_plugin._printer.commands(["$10=156","?"],force=True)
         return
 
     # Print ended (finished / failed / cancelled)
