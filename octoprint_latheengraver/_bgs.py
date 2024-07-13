@@ -1507,6 +1507,7 @@ def defer_generate_metadata_for_file(_plugin, filename, notify):
         _plugin._file_manager.set_additional_metadata("local", filename, "bgs_width", width, overwrite=True)
         _plugin._file_manager.set_additional_metadata("local", filename, "bgs_origin", origin, overwrite=True)
         _plugin._file_manager.set_additional_metadata("local", filename, "bgs_timestamp", created, overwrite=True)
+        _plugin._file_manager.set_additional_metadata("local", filename, "bgs_imgurl", "templates/", overwrite=True)
 
         _plugin._file_manager.remove_additional_metadata("local", filename, "bgs_processing")
 
