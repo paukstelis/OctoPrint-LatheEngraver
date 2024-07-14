@@ -66,7 +66,7 @@ $(function() {
 
         tab = document.getElementById("tab_plugin_latheengraver_link");
         tab.innerHTML = tab.innerHTML.replaceAll("LatheEngraver Support", "Control");
-
+        
         self._disableWebcam = function() {
             // only disable webcam stream if tab is out of focus for more than 5s, otherwise we might cause
             // more load by the constant connection creation than by the actual webcam stream
@@ -419,6 +419,14 @@ $(function() {
                         });
                     });
         };
+        
+        self.replacePrint = function() {
+            $("#files_template_machinecode").text(function () {
+				var return_value = $(this).text();
+				return_value = return_value.replace('Load and Print', 'Load and Start');
+				return return_value;
+			});
+        }
 
         self.onBeforeBinding = function() {
             self.is_printing(self.settings.settings.plugins.latheengraver.is_printing());
@@ -428,6 +436,8 @@ $(function() {
             self.settings.settings.plugins.latheengraver.control_distance.subscribe(function(newValue) {
                 self.distance(newValue);
             });
+            //Replace Load and Print with Load and Start
+            self.replacePrint();
 
             if (self.settings.settings.plugins.latheengraver.hasA() == true) { self.origin_axes.push("A"); }
             if (self.settings.settings.plugins.latheengraver.hasB() == true) { self.origin_axes.push("B"); }
@@ -435,6 +445,7 @@ $(function() {
             self.notifications.requestData = self.overrideRequestData;
             self.notifications.clear = self.overrideClear;
             self.notifications.onDataUpdaterPluginMessage = self.overrideOnDataUpdaterPluginMessage;
+
         };
 
         self.overrideRequestData = function() {
