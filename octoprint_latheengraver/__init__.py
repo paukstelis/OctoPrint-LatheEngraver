@@ -116,7 +116,9 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.DIAM = float(0)
         self.maxarc = float(0)
         self.arcadd = float(1)
-        self.minz = float(0)
+        self.minZ = float(0)
+        self.minZ_th = float(-1.0)
+        self.track_plunge = False
         self.relative = False
         self.tooldistance = 135.0
         self.timeRef = 0
@@ -290,7 +292,9 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             fluidYaml = None,
             fluidSettings = {},
             hasA = True,
-            hasB = True
+            hasB = True,
+            minZ_th = -1.0,
+            track_plunge = False,
         )
 
 
@@ -360,8 +364,10 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.zProbeXDir = int(self._settings.get(["zprobe_xdir"]))
         self.zProbeXLen = int(self._settings.get(["zprobe_xlen"]))
         self.zProbeDiam = int(self._settings.get(["zprobe_diam"]))
+        #track plunging
 
-        # hardcoded global settings -- should revisit how I manage these
+        self.track_plunge = self._settings.get_boolean(["track_plunge"])
+        self.minZ_th = float(self._settings.get(["minZ_th"]))
         self._settings.global_set_boolean(["feature", "modelSizeDetection"], not self.disableModelSizeDetection)
         self._settings.global_set_boolean(["feature", "sdSupport"], False)
         self._settings.global_set_boolean(["serial", "neverSendChecksum"], self.neverSendChecksum)
@@ -700,9 +706,14 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         mod_x = 0
         mod_z = 0
         mod_a = 0
+        track_plunge = False
 
         if match_z:
             self.queue_Z = float(match_z.groups(1)[0])
+            if self.track_plunge:
+                if self.queue_Z < (self.minZ_th and self.minZ):
+                    self.minz = self.queue_Z
+                    track_plunge = True
         if match_x:
             self.queue_X = float(match_x.groups(1)[0])
         if match_a:
@@ -779,6 +790,9 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                     newcmd = newcmd + "S{0} ".format(self.queue_S)
                 #self._logger.info(newcmd)
                 cmd = newcmd
+        if track_plunge:
+            pausecmd = "M0"
+            cmd.insert(0, pausecmd)
 
         return cmd
 
@@ -1286,6 +1300,8 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                                                                                 positioning=self.positioning,
                                                                                 coolant=self.coolant))
                 self.timeRef = currentTime
+                # Send to gcode_ripper as well
+                self._plugin_manager.send_plugin_message("gcode_ripper", dict(type="grbl_state",z=self.grblZ))
 
 
         # we only want to track requests we care about

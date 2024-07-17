@@ -428,6 +428,15 @@ $(function() {
 			});
         }
 
+        $("#track_plunge").on("change", function() {
+            console.log(this.val());
+        });
+
+        self.runOptions = function() {
+            var options = $("#run_options");
+
+        }
+
         self.onBeforeBinding = function() {
             self.is_printing(self.settings.settings.plugins.latheengraver.is_printing());
             self.is_operational(self.settings.settings.plugins.latheengraver.is_operational());
@@ -1548,7 +1557,7 @@ $(function() {
     window.addEventListener("gamepaddisconnected", disconnecthandler);
 
     if (!haveEvents) {
-     setInterval(scangamepads, 500);
+     setInterval(scangamepads, 150);
     }
 
     OCTOPRINT_VIEWMODELS.push([
