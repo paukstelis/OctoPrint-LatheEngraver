@@ -45,6 +45,10 @@ $(function() {
         self.is_operational = ko.observable(false);
         self.isLoading = ko.observable(undefined);
 
+        self.track_plunge = ko.observable(false);
+        self.minZ = ko.observable(0);
+        self.minz_th = ko.observable(0);
+
         self.mode = ko.observable("N/A");
         self.state = ko.observable("N/A");
         self.xPos = ko.observable("N/A");
