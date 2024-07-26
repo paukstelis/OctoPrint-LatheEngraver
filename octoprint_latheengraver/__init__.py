@@ -1029,7 +1029,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
 
         # Grbl 1.1 Realtime Commands (requires Octoprint 1.8.0+)
         # see https://github.com/OctoPrint/OctoPrint/pull/4390
-        '''
+        
         # safety door
         if cmd.upper() == "SAFETYDOOR":
             if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
@@ -1133,7 +1133,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 cmd = "? {} ?".format("\x9E")
             else:
                 return (None, )
-        '''
+
         # rewrite M115 firmware as $$ (hello)
         if self.suppressM115 and cmd.upper().startswith('M115'):
             self._logger.debug('Rewriting M115 as %s' % self.helloCommand)
