@@ -711,7 +711,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         if match_z:
             self.queue_Z = float(match_z.groups(1)[0])
             if self.track_plunge:
-                if self.queue_Z < (self.minZ_th and self.minZ):
+                if (self.queue_Z < self.minZ_th) and (self.queue_Z < self.minZ):
                     self.minz = self.queue_Z
                     track_plunge = True
         if match_x:
@@ -735,6 +735,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             for c in gcommands:
                 newcmd = newcmd + "{0} ".format(c)
 
+            #Only happens with ARCMOD
             if self.do_mod_z:
                 zmod = self.adjust_Z(self.queue_A, self.queue_Z)
                 #self._logger.info("Z modified by {0}".format(zmod))
