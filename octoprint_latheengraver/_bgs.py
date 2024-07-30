@@ -348,12 +348,12 @@ def on_event(_plugin, event, payload):
         #if not is_laser_mode(_plugin):
         #    _plugin._printer.commands(["G91 G0 Z5"], force=True)
 
-        _plugin._printer.commands(["M5", "?"], force=True)
+        #_plugin._printer.commands(["M5", "?"], force=True)
 
     # Print Paused
     if event == Events.PRINT_PAUSED:
         _plugin._logger.debug("paused job")
-        _plugin._printer.commands(["M5", "?", "!", "?"], force=True)
+        _plugin._printer.commands(["M5", "?", "!", "?"], force=False)
         #_plugin._printer.fake_ack()
 
     # Print Resumed

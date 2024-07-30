@@ -1597,7 +1597,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 # now rather than wait for it to be sent -- it could be a while for
                 # one to come in
                 if self._printer.is_printing():
-                    self._printer.commands("S{}".format(self.grblPowerLevel), force=True)
+                    self._printer.commands("S{}".format(self.grblPowerLevel))
 
             else:
                 self.powerRate = float(0)
