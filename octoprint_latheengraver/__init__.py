@@ -797,9 +797,8 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 #self._logger.info(newcmd)
                 cmd = newcmd
         if track_plunge:
-            pausecmd = "M0"
-            cmd.insert(0, pausecmd)
-
+            cmd = ["M0",cmd]
+            
         return cmd
 
     def get_new_A(self, zval, aval):
