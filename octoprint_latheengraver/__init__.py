@@ -800,7 +800,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         if track_plunge:
             self.queued_command = cmd
             self._logger.info(self.queued_command)
-            cmd = ["M0"]
+            cmd = ["M0","G4 P0.05"]
 
         return cmd
 
