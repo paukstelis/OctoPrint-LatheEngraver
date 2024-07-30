@@ -363,6 +363,7 @@ def on_event(_plugin, event, payload):
 
         # make sure we are using whatever positioning mode was active before we paused
         _plugin._printer.commands(["G91" if _plugin.pausedPositioning == 1 else "G90"], force=True)
+        _plugin._printer.commands(["{0}".format(_plugin.queued_command)], force=True)
 
         _plugin.grblState = "Run"
         _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_state", state="Run"))

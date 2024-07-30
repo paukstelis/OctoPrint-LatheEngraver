@@ -121,11 +121,12 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.minZ = float(0)
         self.minZ_th = float(-1.0)
         self.track_plunge = True
-        
+        self.queued_command = ""
+
         self.relative = False
         self.tooldistance = 135.0
         self.timeRef = 0
-
+        
         self.grblErrors = {}
         self.grblAlarms = {}
         self.grblSettingsNames = {}
@@ -797,8 +798,10 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 #self._logger.info(newcmd)
                 cmd = newcmd
         if track_plunge:
-            cmd = ["M0",cmd]
-            
+            self.queued_command = cmd
+            self._logger.info(self.queued_command)
+            cmd = ["M0"]
+
         return cmd
 
     def get_new_A(self, zval, aval):
