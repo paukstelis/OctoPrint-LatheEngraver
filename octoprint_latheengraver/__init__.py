@@ -105,6 +105,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.coolant = "M9"
         self.grblCoordinateSystem = "G54"
         self.babystep = 0
+
         self.do_bangle = False
         self.do_mod_a = False
         self.do_mod_z = False
@@ -116,9 +117,11 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.DIAM = float(0)
         self.maxarc = float(0)
         self.arcadd = float(1)
+        
         self.minZ = float(0)
         self.minZ_th = float(-1.0)
-        self.track_plunge = False
+        self.track_plunge = True
+        
         self.relative = False
         self.tooldistance = 135.0
         self.timeRef = 0
