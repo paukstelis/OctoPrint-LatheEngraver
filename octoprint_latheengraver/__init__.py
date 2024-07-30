@@ -717,8 +717,8 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             self._logger.info("Z value: {0}".format(self.queue_Z))
             if self.track_plunge:
                 if (self.queue_Z < self.minZ_th) and (self.queue_Z < self.minZ):
-                    self.minz = self.queue_Z
-                    self._logger.info("Zmin now {0}".format(self.minz))
+                    self.minZ = self.queue_Z
+                    self._logger.info("Zmin now {0}".format(self.minZ))
                     track_plunge = True
         if match_x:
             self.queue_X = float(match_x.groups(1)[0])
