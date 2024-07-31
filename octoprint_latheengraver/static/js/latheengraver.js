@@ -45,6 +45,7 @@ $(function() {
         self.is_operational = ko.observable(false);
         self.isLoading = ko.observable(undefined);
 
+        self.template = ko.observable(true);
         self.cut_depth = ko.observable(10.0);
         self.track_plunge = ko.observable(false);
         self.minZ = ko.observable(0);
@@ -142,25 +143,31 @@ $(function() {
         };
         
         self.onBeforePrintStart = function(start_print_command) {
-            var laserMode = self.settings.settings.plugins.latheengraver.laserMode;
-            if (laserMode) {
-                showDialog("#cncStartDialog", function(dialog){
-                    OctoPrint.simpleApiCommand("latheengraver", "cncrun", { "sessionId": self.sessionId,
+            var laserMode = self.settings.settings.plugins.latheengraver.laserMode();
+            if (laserMode === "true") {
+                showDialog("#laserStartDialog", function(dialog){
+                    OctoPrint.simpleApiCommand("latheengraver", "laserrun", { "sessionId": self.sessionId,
                         "direction": direction,
                         "distance": distance,
-                        "axis": self.origin_axis() })
+                        "axis": self.origin_axis() });
                     start_print_command();
                     dialog.modal('hide');
                 });
-            }
-
-            else {
-                showDialog("#laserStartDialog", function(dialog){
-                    OctoPrint.simpleApiCommand("latheengraver", "laseerrun", { "sessionId": self.sessionId,
-                        "cut_depth": direction,
-                        "track_plunge": distance,
-                        "minZ": something,
-                        "minZ_th": something, })
+            } else {
+                showDialog("#cncStartDialog", function(dialog){
+                    if (self.template === "true") {
+                        OctoPrint.simpleApiCommand("latheengraver", "cncrun", { "sessionId": self.sessionId,
+                            "cut_depth": direction,
+                            "track_plunge": distance,
+                            "minZ": something,
+                            "minZ_th": something, });
+                    } else {
+                        OctoPrint.simpleApiCommand("latheengraver", "cncrun", { "sessionId": self.sessionId,
+                            "cut_depth": 0,
+                            "track_plunge": true,
+                            "minZ": something,
+                            "minZ_th": something, });
+                    } 
                     start_print_command();
                     dialog.modal('hide');
                 });

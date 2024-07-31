@@ -118,10 +118,13 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.maxarc = float(0)
         self.arcadd = float(1)
         
+        self.template = False
+        self.cut_depth = float(0.0)
         self.minZ = float(0)
         self.minZ_th = float(-1.0)
-        self.track_plunge = True
+        self.track_plunge = False
         self.queued_command = ""
+        self.TERMINATE = False
 
         self.relative = False
         self.tooldistance = 135.0
@@ -701,6 +704,10 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
     # #-- gcode queuing hook
     #these need to be in queuing to extend
     def hook_gcode_queuing(self, comm_instance, phase, cmd, cmd_type, gcode, tags, *args, **kwargs):
+        #if terminate has started, we aren't going to queue or send any more gcode, all commands are skipped
+        if self.TERMINATE:
+            cmd = None, 
+            return cmd
         match_x = re.search(r".*[Xx]\ *(-?[\d.]+).*", cmd)
         match_z = re.search(r".*[Zz]\ *(-?[\d.]+).*", cmd)
         match_a = re.search(r".*[Aa]\ *(-?[\d.]+).*", cmd)
@@ -715,11 +722,18 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         if match_z:
             self.queue_Z = float(match_z.groups(1)[0])
             self._logger.info("Z value: {0}".format(self.queue_Z))
+            
+            #template must be checked, cut_depth must be non-zero and the value must be less than cut_depth to start termination
+            if self.template and self.cut_depth and self.queue_Z < self.cut_depth:
+                self.start_termination()
+                return
+            
             if self.track_plunge:
                 if (self.queue_Z < self.minZ_th) and (self.queue_Z < self.minZ):
                     self.minZ = self.queue_Z
                     self._logger.info("Zmin now {0}".format(self.minZ))
                     track_plunge = True
+
         if match_x:
             self.queue_X = float(match_x.groups(1)[0])
         if match_a:
@@ -844,6 +858,10 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
 
         return mod_x, mod_z
     
+    def start_termination(self):
+        #need these commands to be queued, so don't use Force
+        self._printer.commands(["G0 Z5", "G0 X0", "M5", "M30", "TERMINATE"], force=False)
+    
     # #-- gcode sending hook
     def hook_gcode_sending(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
         self._logger.debug("__init__: hook_gcode_sending phase=[{}] cmd=[{}] cmd_type=[{}] gcode=[{}]".format(phase, cmd, cmd_type, gcode))
@@ -964,6 +982,10 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         if cmd.upper() == "STOPBANGLE":
             self.do_bangle = False
             self._logger.info('B angle matrix transformation off')
+            return (None, )
+        
+        if cmd.upper() == "TERMINATE":
+            self.TERMINATE = True
             return (None, )
         
         if cmd.upper() == "DOMODA":
@@ -1496,6 +1518,8 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             feedRate=["feed_rate"],
             plungeRate=["plunge_rate"],
             powerRate=["power_rate"],
+            cncrun=[],
+            laserrun=[],
         )
 
     def on_api_command(self, command, data):
@@ -1781,6 +1805,12 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
 
         if command == "toggleWeak":
             return flask.jsonify({'res' : _bgs.toggle_weak(self)})
+        
+        if command == "cncrun":
+            return
+        
+        if command == "laserrun":
+            return
 
 
     def on_wizard_finish(self, handled):

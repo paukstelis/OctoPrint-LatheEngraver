@@ -309,7 +309,12 @@ def on_event(_plugin, event, payload):
 
         _plugin.is_printing = True
         _plugin._settings.set_boolean(["is_printing"], _plugin.is_printing)
-
+        
+        #these should never be on in lasermode
+        if is_laser_mode(_plugin):
+            _plugin.template = False
+            _plugin.track_plugine =False
+        
         if _plugin.autoCooldown:
             activate_auto_cooldown(_plugin)
         #Get Machine positions to log starting positions
@@ -324,6 +329,11 @@ def on_event(_plugin, event, payload):
         _plugin.is_printing = False
         _plugin._settings.set_boolean(["is_printing"], _plugin.is_printing)
         _plugin.dobangle = False
+        _plugin.template = False
+        _plugin.TERMINATE = False
+        _plugin.cut_depth = 0.0
+        _plugin.queued_command = ""
+        _plugin.track_plunge = False
         return
 
     # Print Cancelling

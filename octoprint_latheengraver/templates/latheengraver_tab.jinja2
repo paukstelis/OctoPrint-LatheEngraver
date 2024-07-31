@@ -302,17 +302,27 @@
         <h3 class="modal-title">Starting CNC Run</h3>
     </div>
     <div class="modal-body cnc">
-        <h4>Dialog-Content</h4>
-         <div class="span3">
-            <label for="diameter_input">Nominal cut depth (required):</label>
-            <input id="diameter_input" type="number" step="any" class="span5" data-bind="value: cut_depth">       
+        <h4>Run Settings</h4>
+         <div>
+            <label for="template">Template run:
+               <input id="template" type="checkbox" checked data-bind="checked: template">
+               <i class="icon icon-info-sign" title="Check this ONLY if the run used Gcode templates, or you want these settings to apply. Turning this off will ignore all settings below this." data-toggle="tooltip"></i>
+
+            </label>
+         </div>
+         <div>
+            <label for="diameter_input">Nominal cut depth (mm):
+            <input id="diameter_input" type="number" step="any" data-bind="value: cut_depth">
+            <i class="icon icon-info-sign" title="Run will end after Z plunge value reaches this depth." data-toggle="tooltip"></i>
+            </label>       
          </div>
          <br>
-         <div class="span3">
-            <label for="zdepth">Enable pause at Z depth:</label>
-            <input id="zdepth" type="checkbox" checked class="span3" data-bind="checked: track_plunge">
+         <div>
+            <label for="zdepth">Enable pause at Z depth:
+            <input id="zdepth" type="checkbox" checked data-bind="checked: track_plunge">
+            <i class="icon icon-info-sign" title="Allows pausing the job at various Z heights." data-toggle="tooltip"></i>
+            </label>
          </div>     
-         </div>
     </div>
     <div class="modal-footer">
         <button class="btn btn-cancel" data-dismiss="modal" aria-hidden="true">Cancel</button>
