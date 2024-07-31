@@ -141,20 +141,34 @@ $(function() {
         };
         
         self.onBeforePrintStart = function(start_print_command) {
-
-            showConfirmationDialog({
-                title: gettext("Starting Job"),
-                message: gettext("<p><strong>You are about to start a job.</strong>"),
-                question: gettext("Are all axes zeroed and everything in position?"),
-                cancel: gettext("Cancel"),
-                proceed: gettext("Start"),
-                onproceed: function () {
-                    start_print_command();
-                },
-                nofade: true
+            var laserMode = self.settings.settings.plugins.latheengraver.laserMode;
+            showDialog("#sidebar_simpleDialog", function(dialog){
+                // printAllowed = showDialog();
+                start_print_command();
+                dialog.modal('hide');
             });
+
             return false;
         };
+
+        function showDialog(dialogId, confirmFunction){
+            var myDialog = $(dialogId);
+            var confirmButton = $("button.btn-confirm", myDialog);
+            var cancelButton = $("button.btn-cancel", myDialog);
+            //var dialogTitle = $("h3.modal-title", editDialog);
+    
+            confirmButton.unbind("click");
+            confirmButton.bind("click", function() {
+                alert ("Do something");
+                confirmFunction(myDialog);
+            });
+            myDialog.modal({
+                //minHeight: function() { return Math.max($.fn.modal.defaults.maxHeight() - 80, 250); }
+            }).css({
+                width: 'auto',
+                'margin-left': function() { return -($(this).width() /2); }
+            });
+    }
 
         self.onBrowserTabVisibilityChange = function(status) {
             if (status) {
