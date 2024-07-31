@@ -304,26 +304,35 @@
     <div class="modal-body cnc">
         <h4>Run Settings</h4>
          <div>
-            <label for="template">Template run:
+            <label for="template">Enable cut depth:
                <input id="template" type="checkbox" checked data-bind="checked: template">
-               <i class="icon icon-info-sign" title="Check this ONLY if the run used Gcode templates, or you want these settings to apply. Turning this off will ignore all settings below this." data-toggle="tooltip"></i>
-
+               <i class="icon icon-info-sign" title="Enables ending the run after a Z depth is reached." data-toggle="tooltip"></i>
             </label>
          </div>
          <div>
-            <label for="diameter_input">Nominal cut depth (mm):
-            <input id="diameter_input" type="number" step="any" data-bind="value: cut_depth">
-            <i class="icon icon-info-sign" title="Run will end after Z plunge value reaches this depth." data-toggle="tooltip"></i>
+            <label for="cut_input">Nominal cut depth (mm):
+            <input id="cut_input" type="number" step="any" data-bind="value: cut_depth">
+            <i class="icon icon-info-sign" title="Run will end after Z value reaches this depth." data-toggle="tooltip"></i>
             </label>       
          </div>
          <br>
          <div>
             <label for="zdepth">Enable pause at Z depth:
             <input id="zdepth" type="checkbox" checked data-bind="checked: track_plunge">
-            <i class="icon icon-info-sign" title="Allows pausing the job at various Z heights." data-toggle="tooltip"></i>
+            <i class="icon icon-info-sign" title="Enables pausing the job after a Z depth is reached." data-toggle="tooltip"></i>
             </label>
-         </div>     
+         </div>
+         <div>
+            <label for="pausez">Begin pause depth (mm):
+            <input id="pausez" type="number" step="any" data-bind="value: minZ_th">
+            <i class="icon icon-info-sign" title="After this depth the run will pause at each Z plunge increment." data-toggle="tooltip"></i>
+            </label>
+         </div>
+         <div>
+            <h4>Verify that all axes have been homed appropriately and everything is in place</h4>
+         </div>       
     </div>
+
     <div class="modal-footer">
         <button class="btn btn-cancel" data-dismiss="modal" aria-hidden="true">Cancel</button>
         <button class="btn btn-danger btn-confirm">Confirm</button>

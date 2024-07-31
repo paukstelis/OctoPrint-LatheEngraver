@@ -49,7 +49,7 @@ $(function() {
         self.cut_depth = ko.observable(10.0);
         self.track_plunge = ko.observable(false);
         self.minZ = ko.observable(0);
-        self.minz_th = ko.observable(0);
+        self.minZ_th = ko.observable(0);
 
         self.mode = ko.observable("N/A");
         self.state = ko.observable("N/A");
@@ -149,25 +149,17 @@ $(function() {
                     OctoPrint.simpleApiCommand("latheengraver", "laserrun", { "sessionId": self.sessionId,
                         "direction": direction,
                         "distance": distance,
-                        "axis": self.origin_axis() });
+                        "axis": self.origin_axis() })
                     start_print_command();
                     dialog.modal('hide');
                 });
             } else {
                 showDialog("#cncStartDialog", function(dialog){
-                    if (self.template === "true") {
-                        OctoPrint.simpleApiCommand("latheengraver", "cncrun", { "sessionId": self.sessionId,
-                            "cut_depth": direction,
-                            "track_plunge": distance,
-                            "minZ": something,
-                            "minZ_th": something, });
-                    } else {
-                        OctoPrint.simpleApiCommand("latheengraver", "cncrun", { "sessionId": self.sessionId,
-                            "cut_depth": 0,
-                            "track_plunge": true,
-                            "minZ": something,
-                            "minZ_th": something, });
-                    } 
+                    OctoPrint.simpleApiCommand("latheengraver", "cncrun", { "sessionId": self.sessionId,
+                        "template": self.template(),
+                        "cut_depth": self.cut_depth(),
+                        "track_plunge": self.track_plunge(),
+                        "minZ_th": self.minZ_th(), })
                     start_print_command();
                     dialog.modal('hide');
                 });
@@ -184,7 +176,7 @@ $(function() {
     
             confirmButton.unbind("click");
             confirmButton.bind("click", function() {
-                alert ("Do something");
+                //alert ("Do something");
                 confirmFunction(myDialog);
             });
             myDialog.modal({

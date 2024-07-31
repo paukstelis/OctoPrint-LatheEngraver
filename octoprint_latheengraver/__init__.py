@@ -121,7 +121,8 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.template = False
         self.cut_depth = float(0.0)
         self.minZ = float(0)
-        self.minZ_th = float(-1.0)
+        self.minZ_th = float(0.0)
+        self.minZ_inc = float(0)
         self.track_plunge = False
         self.queued_command = ""
         self.TERMINATE = False
@@ -704,10 +705,12 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
     # #-- gcode queuing hook
     #these need to be in queuing to extend
     def hook_gcode_queuing(self, comm_instance, phase, cmd, cmd_type, gcode, tags, *args, **kwargs):
+        
         #if terminate has started, we aren't going to queue or send any more gcode, all commands are skipped
         if self.TERMINATE:
             cmd = None, 
             return cmd
+        
         match_x = re.search(r".*[Xx]\ *(-?[\d.]+).*", cmd)
         match_z = re.search(r".*[Zz]\ *(-?[\d.]+).*", cmd)
         match_a = re.search(r".*[Aa]\ *(-?[\d.]+).*", cmd)
@@ -726,7 +729,8 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             #template must be checked, cut_depth must be non-zero and the value must be less than cut_depth to start termination
             if self.template and self.cut_depth and self.queue_Z < self.cut_depth:
                 self.start_termination()
-                return
+                cmd = None,
+                return cmd
             
             if self.track_plunge:
                 if (self.queue_Z < self.minZ_th) and (self.queue_Z < self.minZ):
@@ -1807,6 +1811,16 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             return flask.jsonify({'res' : _bgs.toggle_weak(self)})
         
         if command == "cncrun":
+            self._logger.info(data)
+            self.template = bool(data["template"])
+            self.cut_depth = float(data["cut_depth"])
+            self.track_plunge = bool(data["track_plunge"])
+            self.minZ_th = float(data["minZ_th"])
+            #allow either positive or negative
+            if self.cut_depth > 0:
+                self.cut_depth = self.cut_depth * -1
+            if self.minZ_th > 0:
+                self.minZ_th = self.minZ_th * -1
             return
         
         if command == "laserrun":
