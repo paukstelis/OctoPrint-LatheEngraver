@@ -296,13 +296,23 @@
   <span style="display: inline-block; margin: 0px 0px 0px 5px; vertical-align: middle;">&nbsp;</span>
 </div>
 
-<div id="sidebar_simpleDialog" class="modal hide fade">
+<div id="cncStartDialog" class="modal hide fade">
     <div class="modal-header">
         <a href="#" class="close" data-dismiss="modal" aria-hidden="true">&times;</a>
-        <h3 class="modal-title">This is the Dialog-Title</h3>
+        <h3 class="modal-title">Starting CNC Run</h3>
     </div>
     <div class="modal-body cnc">
         <h4>Dialog-Content</h4>
+         <div class="span3">
+            <label for="diameter_input">Nominal cut depth (required):</label>
+            <input id="diameter_input" type="number" step="any" class="span5" data-bind="value: cut_depth">       
+         </div>
+         <br>
+         <div class="span3">
+            <label for="zdepth">Enable pause at Z depth:</label>
+            <input id="zdepth" type="checkbox" checked class="span3" data-bind="checked: track_plunge">
+         </div>     
+         </div>
     </div>
     <div class="modal-footer">
         <button class="btn btn-cancel" data-dismiss="modal" aria-hidden="true">Cancel</button>
@@ -310,6 +320,19 @@
     </div>
 </div>
 
+<div id="laserStartDialog" class="modal hide fade">
+    <div class="modal-header">
+        <a href="#" class="close" data-dismiss="modal" aria-hidden="true">&times;</a>
+        <h3 class="modal-title">Starting Laser Run</h3>
+    </div>
+    <div class="modal-body laser">
+        <h4>Dialog-Content</h4>
+    </div>
+    <div class="modal-footer">
+        <button class="btn btn-cancel" data-dismiss="modal" aria-hidden="true">Cancel</button>
+        <button class="btn btn-danger btn-confirm">Confirm</button>
+    </div>
+</div>
 
 <!-- Container for custom controls -->
 <div id="control-jog-custom" style="clear: both; display: none;" data-bind="visible: loginState.hasPermissionKo(access.permissions.CONTROL), template: { name: $root.displayMode, foreach: controls }"></div>

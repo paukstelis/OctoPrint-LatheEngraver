@@ -45,6 +45,7 @@ $(function() {
         self.is_operational = ko.observable(false);
         self.isLoading = ko.observable(undefined);
 
+        self.cut_depth = ko.observable(10.0);
         self.track_plunge = ko.observable(false);
         self.minZ = ko.observable(0);
         self.minz_th = ko.observable(0);
@@ -142,11 +143,28 @@ $(function() {
         
         self.onBeforePrintStart = function(start_print_command) {
             var laserMode = self.settings.settings.plugins.latheengraver.laserMode;
-            showDialog("#sidebar_simpleDialog", function(dialog){
-                // printAllowed = showDialog();
-                start_print_command();
-                dialog.modal('hide');
-            });
+            if (laserMode) {
+                showDialog("#cncStartDialog", function(dialog){
+                    OctoPrint.simpleApiCommand("latheengraver", "cncrun", { "sessionId": self.sessionId,
+                        "direction": direction,
+                        "distance": distance,
+                        "axis": self.origin_axis() })
+                    start_print_command();
+                    dialog.modal('hide');
+                });
+            }
+
+            else {
+                showDialog("#laserStartDialog", function(dialog){
+                    OctoPrint.simpleApiCommand("latheengraver", "laseerrun", { "sessionId": self.sessionId,
+                        "cut_depth": direction,
+                        "track_plunge": distance,
+                        "minZ": something,
+                        "minZ_th": something, })
+                    start_print_command();
+                    dialog.modal('hide');
+                });
+            }
 
             return false;
         };
@@ -168,7 +186,7 @@ $(function() {
                 width: 'auto',
                 'margin-left': function() { return -($(this).width() /2); }
             });
-    }
+        }
 
         self.onBrowserTabVisibilityChange = function(status) {
             if (status) {
