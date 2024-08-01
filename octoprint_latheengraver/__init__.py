@@ -706,10 +706,10 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
 
     def hook_script_onresume(self, comm, script_type, script_name, *args, **kwargs):
         self._logger.info(script_type, script_name)
-        if not script_type == "gcode" or not script_name == "beforePrinterResumed":
+        if not script_type == "gcode" or not script_name == "beforePrintResumed":
             return None
         positioning = "G91" if self.pausedPositioning == 1 else "G90"
-        prefix = ["~",",M3","G4 P5",positioning]
+        prefix = ["~","M3","G4 P5",positioning]
         if self.queued_command:
             postfix=self.queued_command
             self.queued_command = ""
@@ -836,7 +836,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             self._logger.info(self.queued_command)
             if self._printer.set_job_on_hold(True):
                 self._printer.pause_print()
-                cmd=["M400","M5","M3","M5","M3","M5","M3","M5"]
+                cmd="M5"
                 self._printer.set_job_on_hold(False)
                 return cmd
     
@@ -1931,7 +1931,7 @@ def __plugin_load__():
     global __plugin_hooks__
     __plugin_hooks__ = \
         {"octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information,
-         "octoprint.comm.protocol.scripts": __plugin_implementation__.hook_script_onresume,
+         "octoprint.comm.protocol.scripts": (__plugin_implementation__.hook_script_onresume, 1),
          "octoprint.comm.protocol.gcode.sending": __plugin_implementation__.hook_gcode_sending,
          "octoprint.comm.protocol.gcode.received": __plugin_implementation__.hook_gcode_received,
          "octoprint.comm.protocol.gcode.queuing": __plugin_implementation__.hook_gcode_queuing,
