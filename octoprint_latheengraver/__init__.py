@@ -105,6 +105,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.coolant = "M9"
         self.grblCoordinateSystem = "G54"
         self.babystep = 0
+
         self.do_bangle = False
         self.do_mod_a = False
         self.do_mod_z = False
@@ -116,11 +117,22 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.DIAM = float(0)
         self.maxarc = float(0)
         self.arcadd = float(1)
-        self.minz = float(0)
+        
+        self.template = False
+        self.cut_depth = float(0.0)
+        self.minZ = float(0)
+        self.minZ_th = float(0.0)
+        self.minZ_inc = float(0)
+        self.track_plunge = False
+        self.pauses_started = False
+        self.queued_command = ""
+        self.TERMINATE = False
+        self.job_on_hold = False
+
         self.relative = False
         self.tooldistance = 135.0
         self.timeRef = 0
-
+        
         self.grblErrors = {}
         self.grblAlarms = {}
         self.grblSettingsNames = {}
@@ -290,7 +302,9 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             fluidYaml = None,
             fluidSettings = {},
             hasA = True,
-            hasB = True
+            hasB = True,
+            minZ_th = -1.0,
+            track_plunge = False,
         )
 
 
@@ -360,8 +374,10 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.zProbeXDir = int(self._settings.get(["zprobe_xdir"]))
         self.zProbeXLen = int(self._settings.get(["zprobe_xlen"]))
         self.zProbeDiam = int(self._settings.get(["zprobe_diam"]))
+        #track plunging
 
-        # hardcoded global settings -- should revisit how I manage these
+        #self.track_plunge = self._settings.get_boolean(["track_plunge"])
+        #self.minZ_th = float(self._settings.get(["minZ_th"]))
         self._settings.global_set_boolean(["feature", "modelSizeDetection"], not self.disableModelSizeDetection)
         self._settings.global_set_boolean(["feature", "sdSupport"], False)
         self._settings.global_set_boolean(["serial", "neverSendChecksum"], self.neverSendChecksum)
@@ -688,9 +704,29 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             settings_file.write(data)
         settings_file.close()
         self._logger.debug("wrote data file")
+
+    def hook_script_onresume(self, comm, script_type, script_name, *args, **kwargs):
+        self._logger.info(script_type, script_name)
+        if not script_type == "gcode" or not script_name == "beforePrintResumed":
+            return None
+        positioning = "G91" if self.pausedPositioning == 1 else "G90"
+        prefix = ["~","M3","G4 P5",positioning]
+        if self.queued_command:
+            postfix=self.queued_command
+            self.queued_command = ""
+        else:
+            postfix = None
+        return prefix, postfix
+    
     # #-- gcode queuing hook
     #these need to be in queuing to extend
     def hook_gcode_queuing(self, comm_instance, phase, cmd, cmd_type, gcode, tags, *args, **kwargs):
+        
+        #if terminate has started, we aren't going to queue or send any more gcode, all commands are skipped
+        if self.TERMINATE:
+            cmd = None, 
+            return cmd
+        
         match_x = re.search(r".*[Xx]\ *(-?[\d.]+).*", cmd)
         match_z = re.search(r".*[Zz]\ *(-?[\d.]+).*", cmd)
         match_a = re.search(r".*[Aa]\ *(-?[\d.]+).*", cmd)
@@ -700,9 +736,34 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         mod_x = 0
         mod_z = 0
         mod_a = 0
+        track_plunge = False
+        orig_cmd = cmd
 
         if match_z:
             self.queue_Z = float(match_z.groups(1)[0])
+            #self._logger.info("Z value: {0}".format(self.queue_Z))
+            
+            #template must be checked, cut_depth must be non-zero and the value must be less than cut_depth to start termination
+            if self.template and self.cut_depth and self.queue_Z < self.cut_depth:
+                self.start_termination()
+                cmd = (None, )
+                return cmd
+            
+            if self.track_plunge:
+                if self.pauses_started and self.minZ_inc:
+                    if (self.queue_Z <= self.minZ-self.minZ_inc):
+                        self.minZ = self.queue_Z
+                        track_plunge = True
+                if self.pauses_started and not self.minZ_inc:
+                    if (self.queue_Z < self.minZ):
+                        self.minZ = self.queue_Z
+                        track_plunge = True
+                if not self.pauses_started and (self.queue_Z < self.minZ_th) and (self.queue_Z < self.minZ):
+                    self.minZ = self.queue_Z
+                    self.pauses_started = True
+                    self._logger.info("Zmin now {0}".format(self.minZ))
+                    track_plunge = True
+
         if match_x:
             self.queue_X = float(match_x.groups(1)[0])
         if match_a:
@@ -724,6 +785,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             for c in gcommands:
                 newcmd = newcmd + "{0} ".format(c)
 
+            #Only happens with ARCMOD
             if self.do_mod_z:
                 zmod = self.adjust_Z(self.queue_A, self.queue_Z)
                 #self._logger.info("Z modified by {0}".format(zmod))
@@ -779,7 +841,15 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                     newcmd = newcmd + "S{0} ".format(self.queue_S)
                 #self._logger.info(newcmd)
                 cmd = newcmd
-
+        if track_plunge:
+            self.queued_command = orig_cmd
+            self._logger.info(self.queued_command)
+            if self._printer.set_job_on_hold(True):
+                self._printer.pause_print()
+                cmd="M5"
+                self._printer.set_job_on_hold(False)
+                return cmd
+    
         return cmd
 
     def get_new_A(self, zval, aval):
@@ -821,6 +891,10 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         #mod_z = self.tooldistance*math.cos(bangle) - self.tooldistance
 
         return mod_x, mod_z
+    
+    def start_termination(self):
+        #need these commands to be queued, so don't use Force
+        self._printer.commands(["G0 Z5", "M5", "M30", "TERMINATE"], force=False)
     
     # #-- gcode sending hook
     def hook_gcode_sending(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
@@ -942,6 +1016,10 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         if cmd.upper() == "STOPBANGLE":
             self.do_bangle = False
             self._logger.info('B angle matrix transformation off')
+            return (None, )
+        
+        if cmd.upper() == "TERMINATE":
+            self.TERMINATE = True
             return (None, )
         
         if cmd.upper() == "DOMODA":
@@ -1212,6 +1290,9 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             self.grblZ = float(match.groups(1)[0]) if self.positioning == 0 else self.grblZ + float(match.groups(1)[0])
             found = True
             foundZ = True
+            #Don't let deep cuts get through
+            if self.template and self.cut_depth and self.grblZ < self.cut_depth:
+                return (None, )
 
         #ADD A and B here
         match = re.search(r".*[Aa]\ *(-?[\d.]+).*", cmd)
@@ -1286,6 +1367,8 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                                                                                 positioning=self.positioning,
                                                                                 coolant=self.coolant))
                 self.timeRef = currentTime
+                # Send to gcode_ripper as well
+                self._plugin_manager.send_plugin_message("gcode_ripper", dict(type="grbl_state",z=self.grblZ))
 
 
         # we only want to track requests we care about
@@ -1472,6 +1555,8 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             feedRate=["feed_rate"],
             plungeRate=["plunge_rate"],
             powerRate=["power_rate"],
+            cncrun=[],
+            laserrun=[],
         )
 
     def on_api_command(self, command, data):
@@ -1573,7 +1658,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 # now rather than wait for it to be sent -- it could be a while for
                 # one to come in
                 if self._printer.is_printing():
-                    self._printer.commands("S{}".format(self.grblPowerLevel), force=True)
+                    self._printer.commands("S{}".format(self.grblPowerLevel))
 
             else:
                 self.powerRate = float(0)
@@ -1757,6 +1842,25 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
 
         if command == "toggleWeak":
             return flask.jsonify({'res' : _bgs.toggle_weak(self)})
+        
+        if command == "cncrun":
+            self._logger.info(data)
+            self.template = bool(data["template"])
+            self.cut_depth = float(data["cut_depth"])
+            self.track_plunge = bool(data["track_plunge"])
+            self.minZ_th = float(data["minZ_th"])
+            self.minZ_inc = float(data["minZ_inc"])
+            #allow either positive or negative
+            if self.cut_depth > 0:
+                self.cut_depth = self.cut_depth * -1
+            if self.minZ_th > 0:
+                self.minZ_th = self.minZ_th * -1
+            if self.minZ_inc < 0:
+                self.minZ_inc = self.minZ_inc * -1
+            return
+        
+        if command == "laserrun":
+            return
 
 
     def on_wizard_finish(self, handled):
@@ -1839,8 +1943,9 @@ def __plugin_load__():
 
     global __plugin_hooks__
     __plugin_hooks__ = \
-        {'octoprint.plugin.softwareupdate.check_config': __plugin_implementation__.get_update_information,
-         'octoprint.comm.protocol.gcode.sending': __plugin_implementation__.hook_gcode_sending,
-         'octoprint.comm.protocol.gcode.received': __plugin_implementation__.hook_gcode_received,
-         'octoprint.comm.protocol.gcode.queuing': __plugin_implementation__.hook_gcode_queuing,
+        {"octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information,
+         "octoprint.comm.protocol.scripts": (__plugin_implementation__.hook_script_onresume, 1),
+         "octoprint.comm.protocol.gcode.sending": __plugin_implementation__.hook_gcode_sending,
+         "octoprint.comm.protocol.gcode.received": __plugin_implementation__.hook_gcode_received,
+         "octoprint.comm.protocol.gcode.queuing": __plugin_implementation__.hook_gcode_queuing,
          "octoprint.filemanager.extension_tree": __plugin_implementation__.get_extension_tree}

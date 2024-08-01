@@ -309,7 +309,12 @@ def on_event(_plugin, event, payload):
 
         _plugin.is_printing = True
         _plugin._settings.set_boolean(["is_printing"], _plugin.is_printing)
-
+        
+        #these should never be on in lasermode
+        if is_laser_mode(_plugin):
+            _plugin.template = False
+            _plugin.track_plugine =False
+        
         if _plugin.autoCooldown:
             activate_auto_cooldown(_plugin)
         #Get Machine positions to log starting positions
@@ -324,6 +329,15 @@ def on_event(_plugin, event, payload):
         _plugin.is_printing = False
         _plugin._settings.set_boolean(["is_printing"], _plugin.is_printing)
         _plugin.dobangle = False
+        _plugin.template = False
+        _plugin.TERMINATE = False
+        _plugin.cut_depth = 0.0
+        _plugin.queued_command = ""
+        _plugin.track_plunge = False
+        _plugin.minZ = 0.0
+        _plugin.minZ_th = 0.0
+        _plugin.pauses_started = False
+        _plugin.minZ_inc = 0.0
         return
 
     # Print Cancelling
@@ -338,35 +352,39 @@ def on_event(_plugin, event, payload):
     # Print Pausing
     if payload is not None and payload.get("state_id") == "PAUSING":
         _plugin._logger.debug("pausing job")
-
         _plugin.pausedPower = _plugin.grblPowerLevel
         _plugin.pausedPositioning = _plugin.positioning
 
-        # _plugin._printer.fake_ack()
-
-        # retract Z 5 if not laser mode
-        #if not is_laser_mode(_plugin):
-        #    _plugin._printer.commands(["G91 G0 Z5"], force=True)
-
-        _plugin._printer.commands(["M5", "?"], force=True)
 
     # Print Paused
     if event == Events.PRINT_PAUSED:
+        _plugin._printer.set_job_on_hold(False)
         _plugin._logger.debug("paused job")
-        _plugin._printer.commands(["M5", "?", "!", "?"], force=True)
+        #_plugin._printer.commands(["M5", "?", "!", "?"], force=True)
 
     # Print Resumed
     if event == Events.PRINT_RESUMED:
         _plugin._logger.debug("resuming job")
+
+        """
+        _plugin._printer.commands(["~","M3","G4 P5"], tags={"script:beforePrintResumed"}, force=True)
+
         _plugin._printer.commands(["~", "M3", "G4 P5"], force=True)
 
         # move our spindle back down 5
         #if not is_laser_mode(_plugin):
         #    _plugin._printer.commands(["G4 P10", "G91 G0 Z-5"], force=True)
 
-        # make sure we are using whatever positioning mode was active before we paused
-        _plugin._printer.commands(["G91" if _plugin.pausedPositioning == 1 else "G90"], force=True)
 
+        # make sure we are using whatever positioning mode was active before we paused
+        _plugin._printer.commands(["G91" if _plugin.pausedPositioning == 1 else "G90"], tags={"script:beforePrintResumed"},force=True)
+        
+        #only send if there is a queued command
+        if _plugin.queued_command:
+            _plugin._printer.commands(["{0}".format(_plugin.queued_command)], tags={"script:beforePrintResumed"}, force=True)
+            _plugin.queued_command = ""
+
+        """
         _plugin.grblState = "Run"
         _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_state", state="Run"))
 

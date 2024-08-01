@@ -45,6 +45,13 @@ $(function() {
         self.is_operational = ko.observable(false);
         self.isLoading = ko.observable(undefined);
 
+        self.template = ko.observable(true);
+        self.cut_depth = ko.observable(15.0);
+        self.track_plunge = ko.observable(false);
+        self.minZ = ko.observable(0);
+        self.minZ_th = ko.observable(0);
+        self.minZ_inc = ko.observable(0);
+
         self.mode = ko.observable("N/A");
         self.state = ko.observable("N/A");
         self.xPos = ko.observable("N/A");
@@ -137,20 +144,50 @@ $(function() {
         };
         
         self.onBeforePrintStart = function(start_print_command) {
-
-            showConfirmationDialog({
-                title: gettext("Starting Job"),
-                message: gettext("<p><strong>You are about to start a job.</strong>"),
-                question: gettext("Are all axes zeroed and everything in position?"),
-                cancel: gettext("Cancel"),
-                proceed: gettext("Start"),
-                onproceed: function () {
+            var laserMode = self.settings.settings.plugins.latheengraver.laserMode();
+            if (laserMode === "true") {
+                showDialog("#laserStartDialog", function(dialog){
+                    OctoPrint.simpleApiCommand("latheengraver", "laserrun", { "sessionId": self.sessionId,
+                        "direction": direction,
+                        "distance": distance,
+                        "axis": self.origin_axis() })
                     start_print_command();
-                },
-                nofade: true
-            });
+                    dialog.modal('hide');
+                });
+            } else {
+                showDialog("#cncStartDialog", function(dialog){
+                    OctoPrint.simpleApiCommand("latheengraver", "cncrun", { "sessionId": self.sessionId,
+                        "template": self.template(),
+                        "cut_depth": self.cut_depth(),
+                        "track_plunge": self.track_plunge(),
+                        "minZ_th": self.minZ_th(),
+                        "minZ_inc": self.minZ_inc() })
+                    start_print_command();
+                    dialog.modal('hide');
+                });
+            }
+
             return false;
         };
+
+        function showDialog(dialogId, confirmFunction){
+            var myDialog = $(dialogId);
+            var confirmButton = $("button.btn-confirm", myDialog);
+            var cancelButton = $("button.btn-cancel", myDialog);
+            //var dialogTitle = $("h3.modal-title", editDialog);
+    
+            confirmButton.unbind("click");
+            confirmButton.bind("click", function() {
+                //alert ("Do something");
+                confirmFunction(myDialog);
+            });
+            myDialog.modal({
+                //minHeight: function() { return Math.max($.fn.modal.defaults.maxHeight() - 80, 250); }
+            }).css({
+                width: 'auto',
+                'margin-left': function() { return -($(this).width() /2); }
+            });
+        }
 
         self.onBrowserTabVisibilityChange = function(status) {
             if (status) {
@@ -426,6 +463,15 @@ $(function() {
 				return_value = return_value.replace('Load and Print', 'Load and Start');
 				return return_value;
 			});
+        }
+
+        $("#track_plunge").on("change", function() {
+            console.log(this.val());
+        });
+
+        self.runOptions = function() {
+            var options = $("#run_options");
+
         }
 
         self.onBeforeBinding = function() {
@@ -1549,7 +1595,7 @@ $(function() {
     window.addEventListener("gamepaddisconnected", disconnecthandler);
 
     if (!haveEvents) {
-     setInterval(scangamepads, 500);
+     setInterval(scangamepads, 150);
     }
 
     OCTOPRINT_VIEWMODELS.push([

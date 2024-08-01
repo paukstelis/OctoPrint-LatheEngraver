@@ -227,7 +227,20 @@
       </table>
    </span>
 
-   <span style="display: inline-block; margin: 0px 10px 0px 10px; vertical-align: middle;">&nbsp;</span>
+   <span style="display: inline-block;  margin: 0px 10px 0px 10px; vertical-align: middle;">&nbsp;</span>
+      <div id="run_options" class="accordian-group">
+         <div class="accordian-heading">
+             <a class="accordian-toggle" data-toggle="collapse" href="#run_options_collapse">
+               Run Options
+             </a>
+         </div>
+         <div id="run_options_collapse" class="accordian-body collapse">
+            <div class="accordian-inner">
+             
+            </div>
+         </div>
+      </div>
+   </span>
 
    <span id="laser_buttons" style="display: inline-block; vertical-align: top; margin: 20px 0px 20px 0px" >
       <!-- ko if: settings.settings.plugins.latheengraver.laserMode -->
@@ -283,6 +296,69 @@
   </span>
 
   <span style="display: inline-block; margin: 0px 0px 0px 5px; vertical-align: middle;">&nbsp;</span>
+</div>
+
+<div id="cncStartDialog" class="modal hide fade">
+    <div class="modal-header">
+        <a href="#" class="close" data-dismiss="modal" aria-hidden="true">&times;</a>
+        <h3 class="modal-title">Starting CNC Run</h3>
+    </div>
+    <div class="modal-body cnc">
+        <h4>Run Settings</h4>
+         <div>
+            <label for="template">Enable depth limit:
+               <input id="template" type="checkbox" checked data-bind="checked: template">
+               <i class="icon icon-info-sign" title="Enables ending the run after a Z depth is reached." data-toggle="tooltip"></i>
+            </label>
+         </div>
+         <div>
+            <label for="cut_input">Nominal cut depth (mm):
+            <input id="cut_input" type="number" step="any" data-bind="value: cut_depth">
+            <i class="icon icon-info-sign" title="Run will end after Z value reaches this depth." data-toggle="tooltip"></i>
+            </label>       
+         </div>
+         <br>
+         <div>
+            <label for="zdepth">Enable pause at Z depth:
+            <input id="zdepth" type="checkbox" checked data-bind="checked: track_plunge">
+            <i class="icon icon-info-sign" title="Enables pausing the job after a Z depth is reached." data-toggle="tooltip"></i>
+            </label>
+         </div>
+         <div>
+            <label for="pausez">Pause depth (mm):
+            <input id="pausez" type="number" step="any" data-bind="value: minZ_th">
+            <i class="icon icon-info-sign" title="After this depth the run will pause, and continue to pause after each increment defined below." data-toggle="tooltip"></i>
+            </label>
+         </div>
+         <div>
+            <label for="incz">Pause increments (mm):
+            <input id="incz" type="number" step="any" data-bind="value: minZ_inc">
+            <i class="icon icon-info-sign" title="After reaching pause depth, pauses will continue at these increments. 0 value will pause at every plunge." data-toggle="tooltip"></i>
+            </label>
+         </div>
+         <div>
+            <h4>Verify that all axes have been homed appropriately and everything is in place</h4>
+         </div>       
+    </div>
+
+    <div class="modal-footer">
+        <button class="btn btn-cancel" data-dismiss="modal" aria-hidden="true">Cancel</button>
+        <button class="btn btn-danger btn-confirm">Confirm</button>
+    </div>
+</div>
+
+<div id="laserStartDialog" class="modal hide fade">
+    <div class="modal-header">
+        <a href="#" class="close" data-dismiss="modal" aria-hidden="true">&times;</a>
+        <h3 class="modal-title">Starting Laser Run</h3>
+    </div>
+    <div class="modal-body laser">
+        <h4>Dialog-Content</h4>
+    </div>
+    <div class="modal-footer">
+        <button class="btn btn-cancel" data-dismiss="modal" aria-hidden="true">Cancel</button>
+        <button class="btn btn-danger btn-confirm">Confirm</button>
+    </div>
 </div>
 
 <!-- Container for custom controls -->
