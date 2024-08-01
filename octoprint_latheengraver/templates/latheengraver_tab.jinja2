@@ -117,7 +117,7 @@
          </tr>
          <tr>
             <td style="padding: 0px 0px 10px 0px;">
-               <button id="control-zup" class="btn box" style="visibility: hidden; border: 1px solid; width: 40px; height: 40px" data-bind="enable: isIdleOrJogging() && operator() != 'J', click: function() {moveHead('up')}">
+               <button id="control-zup" class="btn box" style="visibility: hidden; border: 1px solid; width: 40px; height: 40px" data-bind="enable: isIdleOrJogging() && operator() != 'J', click: function() {jog('up')}">
                  <i class="fa fa-arrow-up"></i>
                </button>
             </td>
@@ -125,9 +125,11 @@
                <button class="btn box" style="visibility: hidden; border: 1px solid; width: 40px; height: 40px" data-bind="event: { touchstart: function() {jog('northwest')}, mousedown: function() {jog('northwest')}, touchend: function() {cancelJog()}, mouseup: function() {cancelJog()}}, enable: isIdleOrJogging()">
                  <i class="fa fa-arrow-up" style="transform: rotate(-45deg);"></i>
                </button>
-               <button id="control-zdown" class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="enable: isIdleOrJogging() && operator() != 'J', click: function() {moveHead('down')}">
+
+               <button id="control-zdown" class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="enable: isIdleOrJogging() && operator() != 'J', click: function() {jog('down')}">
                <i class="fa fa-arrow-up"></i>
                </button>
+
                <button class="btn box" style="visibility: hidden; border: 1px solid; width: 40px; height: 40px" data-bind="event: { touchstart: function() {jog('northeast')}, mousedown: function() {jog('northeast')}, touchend: function() {cancelJog()}, mouseup: function() {cancelJog()}}, enable: isIdleOrJogging()">
                  <i class="fa fa-arrow-up" style="transform: rotate(45deg);"></i>
                </button>
@@ -153,7 +155,7 @@
          </tr>
          <tr>
             <td style="padding: 0px 0px 20px 0px;">
-               <button id="control-zdown" class="btn box" style="visibility: hidden; border: 1px solid; width: 40px; height: 40px" data-bind="enable: isIdleOrJogging() && operator() != 'J', click: function() {moveHead('down')}">
+               <button id="control-zdown" class="btn box" style="visibility: hidden; border: 1px solid; width: 40px; height: 40px" data-bind="enable: isIdleOrJogging() && operator() != 'J', click: function() {jog('down')}">
                <i class="fa fa-arrow-down"></i>
                </button>
             </td>

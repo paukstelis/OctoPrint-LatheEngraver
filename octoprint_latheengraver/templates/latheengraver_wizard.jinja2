@@ -1,4 +1,4 @@
-<div id="bettergrblsupport_wizard">
+<div id="latheengraver_wizard">
   <h3>Terms of Use</h3>
   <b>While every effort has been made to ensure the safety and stability of you and your machine, use of this software is done so at your own risk.  The author and contributors provide no warranty, written, or implied, in any way, shape, or form, related to you, your property, others, or the property of others.</b>
   <br>
@@ -8,73 +8,4 @@
   <br>
   Please visit the <a href="https://www.apache.org/licenses/LICENSE-2.0.txt" target="_blank">Apache Software Foundation</a> website for more details.
   <br>
-  <h3>What's New?</h3>
-  If this is your first time using Better Grbl Support or it has been a while since you've used it, be sure to visit the
-  <a href="https://github.com/synman/Octoprint-Bettergrblsupport/wiki" target="_blank">Better Grbl Support Wiki</a> to learn about its features and how they work.
-  <br>
-  <h4>Release Notes - 2.3.0</h4>
-  This is a sizable update with the introduction of FluidNC support, including full management of its 
-  Configuration files and Settings.  Behind the scenes, numerous other changes have been implemented that optimize existing 
-  Grbl and Grbl_Esp32 settings management.  Additional major behind the scenes work includes synchronization of multi-message 
-  command responses and optimizing communication with the built-in action_command_notification plugin.
-  <br>
-  <br>
-  <ul>
-    <li>Full FluidNC Support!</li>
-    <li>Optimized data flow with action_command_notification plugin</li>
-    <li>Refactored Grbl and Grbl_Esp32 settings management</li>
-    <li>Implemented multi-message command response synchronization</li>
-    <li>Replaced more UI references to print / printer with job / machine</li>
-    <li>Backup and remove default afterPrintCancelled gcode script on startup if it exists</li>
-  </ul>
-  <br>
-  <h5>Release Notes - 2.2.3</h5>
-  <ul>
-    <li>Grbl ESP32 Settings Supported via Plugin Settings</li>
-    <li>Fixed an issue causing xPro V5 Grbl ESP32 controller to panic on connect</li>
-    <li>Grbl Terminal Filters!</li>
-    <li>Replaced more UI references to print / printer with job / machine</li>
-    <li>Removed numeric requirement for Grbl Settings values</li>
-    <li>Added GrblHAL Alarms and Settings descriptions</li>
-    <li>Ignore any G53 commands when calculating bounding box origin for a file</li>
-  </ul>
-  <br>
-  <h5>Release Notes - 2.2.2</h4>
-  <ul>
-    <li>Added A/B/C axis descriptions to grbl_settings.txt</li>
-    <li>Fixed bug preventing USB / Bluetooth gamepads from jogging</li>
-    <li>Set Grbl State to "N/A" on disconnect</li>
-    <li>Do not poll machine when sleeping (will trigger a timeout / disconnect)</li>
-    <li>Auto Cooling implemented (configurable via Settings)</li>
-    <li>Trigger reverting system level config changes when disabling the plugin</li>
-    <li>Consolidate showing notifications when there is more than 1 queued</li>
-    <li>Calculate origin orientation and update framing panel accordingly</li>
-    <li>Added option to disable notification of frame size when file selected</li>
-    <li>Suppress GRBL errors for 10 seconds during the connection phase</li>
-    <li>Added coolant status / toggle (G7, G8, G9) to Grbl Control tab</li>
-    <li>Added Positioning Mode value / toggle (G90, G91) to Grbl Control tab</li>
-    <li>Initial communication handshake is now line feed / line feed / Soft Reset</li>
-    <li>Numerous (other) bug fixes</li>
-  </ul>
-  <br>
-  <h5>Release Notes - 2.2.1 & 2.2.0</h5>
-  <ul>
-    <li>"Joystick" based Jogging - dependent on Octoprint 1.8.0+ (2.2.1)</li>
-    <li>User selectable coordinate systems (G54 thru G59) (2.2.1)</li>
-    <li>Auto select textbox contents upon focus (2.2.1)</li>
-    <li>General UX placement / Responsive improvements (2.2.1)</li>
-    <li>Store calculated job dimensions in file manager metadata (2.2.1)</li>
-    <li>Bug fixes for pause / resume / cancel / restart job (2.2.1)</li>
-    <li>X/Y Probing and the settings necessary to run it in Plugin Properties</li>
-    <li>X/Y Probing corresponds to Material Framing Start Position (corners only)</li>
-    <li>Chained XYZ Probing when axis selector is "ALL"</li>
-    <li>Allow floating point Weak Laser value as low as .001
-    <li>Always show power & speed in Grbl Control tab with 2 decimals of precision
-    <li>Invert X/Y/Z via Invert Axis Jog Setting in Plugin Settings</li>
-    <li>Rearranged / better organized Plugin Settings</li>
-    <li>Initial communication handshake is line feed / line feed
-  </ul>
-  <br>
-  <h3>In Need of Help?</h3>
-  Visit the <a href="https://github.com/synman/Octoprint-Bettergrblsupport/wiki" target="_blank">Better Grbl Support</a> Github page and open an issue, participate in a discusion, and/or read the wiki.  There is also a Facebook group you can join called <a href="https://www.facebook.com/groups/1304168293366369" target="_blank">Octoprint Grbl</a>.
 </div>

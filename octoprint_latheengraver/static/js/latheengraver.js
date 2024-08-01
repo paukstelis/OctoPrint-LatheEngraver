@@ -1203,8 +1203,8 @@ $(function() {
                     break;
                 case 38: // up arrow key
                     // Y+
-                    button = $("#control-north");
-                    simulateTouch = true;
+                    button = $("#control-zdown");
+                    simulateTouch = false;
                     break;
                 case 39: // right arrow key
                     // X+
@@ -1213,8 +1213,8 @@ $(function() {
                     break;
                 case 40: // down arrow key
                     // Y-
-                    button = $("#control-south");
-                    simulateTouch = true;
+                    button = $("#control-zup");
+                    simulateTouch = false;
                     break;
                 case 188: //, or <
                     button = $("#control-a-right");
@@ -1267,16 +1267,16 @@ $(function() {
                     // Distance 100
                     button = $("#control-distance-5");
                     break;
+                
                 case 33: // page up key
                 case 87: // w key
                     // z lift up
-                    button = $("#control-zup");
+                   button = $("#control-zup");
                     break;
                 case 34: // page down key
                 case 83: // s key
                     // z lift down
                     button = $("#control-zdown");
-
                     break;
                 case 36: // home key
                     // xy home
@@ -1292,7 +1292,7 @@ $(function() {
                     event.preventDefault();
                     return false;
             }
-
+            console.log(button);
             if (button === undefined) {
                 return false;
             } else {
@@ -1320,6 +1320,7 @@ $(function() {
                         OctoPrint.coreui.selectedTab == "#tab_plugin_latheengraver" &&
                         OctoPrint.coreui.browserTabVisible && $(":focus").length == 0) {
                     self.onKeyDown(undefined, e);
+                    
                 }
             });
         

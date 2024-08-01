@@ -354,8 +354,8 @@ def on_event(_plugin, event, payload):
         _plugin._logger.debug("pausing job")
         _plugin.pausedPower = _plugin.grblPowerLevel
         _plugin.pausedPositioning = _plugin.positioning
-        
-            
+
+
     # Print Paused
     if event == Events.PRINT_PAUSED:
         _plugin._printer.set_job_on_hold(False)
@@ -365,8 +365,16 @@ def on_event(_plugin, event, payload):
     # Print Resumed
     if event == Events.PRINT_RESUMED:
         _plugin._logger.debug("resuming job")
+
         """
         _plugin._printer.commands(["~","M3","G4 P5"], tags={"script:beforePrintResumed"}, force=True)
+
+        _plugin._printer.commands(["~", "M3", "G4 P5"], force=True)
+
+        # move our spindle back down 5
+        #if not is_laser_mode(_plugin):
+        #    _plugin._printer.commands(["G4 P10", "G91 G0 Z-5"], force=True)
+
 
         # make sure we are using whatever positioning mode was active before we paused
         _plugin._printer.commands(["G91" if _plugin.pausedPositioning == 1 else "G90"], tags={"script:beforePrintResumed"},force=True)
