@@ -711,7 +711,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         positioning = "G91" if self.pausedPositioning == 1 else "G90"
         prefix = ["~",",M3","G4 P5",positioning]
         if self.queued_command:
-            postfix="{0}".format(self.queued_command)
+            postfix=self.queued_command
             self.queued_command = ""
         else:
             postfix = None
