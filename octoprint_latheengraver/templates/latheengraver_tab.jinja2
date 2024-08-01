@@ -323,9 +323,15 @@
             </label>
          </div>
          <div>
-            <label for="pausez">Begin pause depth (mm):
+            <label for="pausez">Pause depth (mm):
             <input id="pausez" type="number" step="any" data-bind="value: minZ_th">
-            <i class="icon icon-info-sign" title="After this depth the run will pause at each Z plunge increment." data-toggle="tooltip"></i>
+            <i class="icon icon-info-sign" title="After this depth the run will pause at each Z plunge increment defined below." data-toggle="tooltip"></i>
+            </label>
+         </div>
+         <div>
+            <label for="incz">Pause increments (mm):
+            <input id="incz" type="number" step="any" data-bind="value: minZ_inc">
+            <i class="icon icon-info-sign" title="After reaching pause depth, pauses will continue at these increments. 0 value will pause at every plunge." data-toggle="tooltip"></i>
             </label>
          </div>
          <div>

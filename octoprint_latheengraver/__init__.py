@@ -124,6 +124,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.minZ_th = float(0.0)
         self.minZ_inc = float(0)
         self.track_plunge = False
+        self.pauses_started = False
         self.queued_command = ""
         self.TERMINATE = False
         self.job_on_hold = False
@@ -740,7 +741,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
 
         if match_z:
             self.queue_Z = float(match_z.groups(1)[0])
-            self._logger.info("Z value: {0}".format(self.queue_Z))
+            #self._logger.info("Z value: {0}".format(self.queue_Z))
             
             #template must be checked, cut_depth must be non-zero and the value must be less than cut_depth to start termination
             if self.template and self.cut_depth and self.queue_Z < self.cut_depth:
@@ -749,8 +750,17 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 return cmd
             
             if self.track_plunge:
-                if (self.queue_Z < self.minZ_th) and (self.queue_Z < self.minZ):
+                if self.pauses_started and self.minZ_inc:
+                    if (self.queue_Z <= self.minZ-self.minZ_inc):
+                        self.minZ = self.queue_Z
+                        track_plunge = True
+                if self.pauses_started and not self.minZ_inc:
+                    if (self.queue_Z < self.minZ):
+                        self.minZ = self.queue_Z
+                        track_plunge = True
+                if not self.pauses_started and (self.queue_Z < self.minZ_th) and (self.queue_Z < self.minZ):
                     self.minZ = self.queue_Z
+                    self.pauses_started = True
                     self._logger.info("Zmin now {0}".format(self.minZ))
                     track_plunge = True
 
@@ -1839,11 +1849,14 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             self.cut_depth = float(data["cut_depth"])
             self.track_plunge = bool(data["track_plunge"])
             self.minZ_th = float(data["minZ_th"])
+            self.minZ_inc = float(data["minZ_inc"])
             #allow either positive or negative
             if self.cut_depth > 0:
                 self.cut_depth = self.cut_depth * -1
             if self.minZ_th > 0:
                 self.minZ_th = self.minZ_th * -1
+            if self.minZ_inc < 0:
+                self.minZ_inc = self.minZ_inc * -1
             return
         
         if command == "laserrun":

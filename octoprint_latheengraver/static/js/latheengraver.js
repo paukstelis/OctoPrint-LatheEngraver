@@ -46,10 +46,11 @@ $(function() {
         self.isLoading = ko.observable(undefined);
 
         self.template = ko.observable(true);
-        self.cut_depth = ko.observable(10.0);
+        self.cut_depth = ko.observable(15.0);
         self.track_plunge = ko.observable(false);
         self.minZ = ko.observable(0);
         self.minZ_th = ko.observable(0);
+        self.minZ_inc = ko.observable(0);
 
         self.mode = ko.observable("N/A");
         self.state = ko.observable("N/A");
@@ -159,7 +160,8 @@ $(function() {
                         "template": self.template(),
                         "cut_depth": self.cut_depth(),
                         "track_plunge": self.track_plunge(),
-                        "minZ_th": self.minZ_th(), })
+                        "minZ_th": self.minZ_th(),
+                        "minZ_inc": self.minZ_inc() })
                     start_print_command();
                     dialog.modal('hide');
                 });
