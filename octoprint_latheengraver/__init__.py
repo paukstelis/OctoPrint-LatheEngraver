@@ -126,6 +126,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.track_plunge = False
         self.queued_command = ""
         self.TERMINATE = False
+        self.job_on_hold = False
 
         self.relative = False
         self.tooldistance = 135.0
@@ -702,6 +703,20 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             settings_file.write(data)
         settings_file.close()
         self._logger.debug("wrote data file")
+
+    def hook_script_onresume(self, comm, script_type, script_name, *args, **kwargs):
+        self._logger.info(script_type, script_name)
+        if not script_type == "gcode" or not script_name == "beforePrinterResumed":
+            return None
+        positioning = "G91" if self.pausedPositioning == 1 else "G90"
+        prefix = ["~",",M3","G4 P5",positioning]
+        if self.queued_command:
+            postfix="{0}".format(self.queued_command)
+            self.queued_command = ""
+        else:
+            postfix = None
+        return prefix, postfix
+    
     # #-- gcode queuing hook
     #these need to be in queuing to extend
     def hook_gcode_queuing(self, comm_instance, phase, cmd, cmd_type, gcode, tags, *args, **kwargs):
@@ -721,6 +736,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         mod_z = 0
         mod_a = 0
         track_plunge = False
+        orig_cmd = cmd
 
         if match_z:
             self.queue_Z = float(match_z.groups(1)[0])
@@ -729,7 +745,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             #template must be checked, cut_depth must be non-zero and the value must be less than cut_depth to start termination
             if self.template and self.cut_depth and self.queue_Z < self.cut_depth:
                 self.start_termination()
-                cmd = None,
+                cmd = (None, )
                 return cmd
             
             if self.track_plunge:
@@ -816,10 +832,14 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 #self._logger.info(newcmd)
                 cmd = newcmd
         if track_plunge:
-            self.queued_command = cmd
+            self.queued_command = orig_cmd
             self._logger.info(self.queued_command)
-            cmd = ["M0","G4 P0.05"]
-
+            if self._printer.set_job_on_hold(True):
+                self._printer.pause_print()
+                cmd=["M400","M5","M3","M5","M3","M5","M3","M5"]
+                self._printer.set_job_on_hold(False)
+                return cmd
+    
         return cmd
 
     def get_new_A(self, zval, aval):
@@ -864,7 +884,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
     
     def start_termination(self):
         #need these commands to be queued, so don't use Force
-        self._printer.commands(["G0 Z5", "G0 X0", "M5", "M30", "TERMINATE"], force=False)
+        self._printer.commands(["G0 Z5", "M5", "M30", "TERMINATE"], force=False)
     
     # #-- gcode sending hook
     def hook_gcode_sending(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
@@ -1260,6 +1280,9 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             self.grblZ = float(match.groups(1)[0]) if self.positioning == 0 else self.grblZ + float(match.groups(1)[0])
             found = True
             foundZ = True
+            #Don't let deep cuts get through
+            if self.template and self.cut_depth and self.grblZ < self.cut_depth:
+                return (None, )
 
         #ADD A and B here
         match = re.search(r".*[Aa]\ *(-?[\d.]+).*", cmd)
@@ -1907,8 +1930,9 @@ def __plugin_load__():
 
     global __plugin_hooks__
     __plugin_hooks__ = \
-        {'octoprint.plugin.softwareupdate.check_config': __plugin_implementation__.get_update_information,
-         'octoprint.comm.protocol.gcode.sending': __plugin_implementation__.hook_gcode_sending,
-         'octoprint.comm.protocol.gcode.received': __plugin_implementation__.hook_gcode_received,
-         'octoprint.comm.protocol.gcode.queuing': __plugin_implementation__.hook_gcode_queuing,
+        {"octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information,
+         "octoprint.comm.protocol.scripts": __plugin_implementation__.hook_script_onresume,
+         "octoprint.comm.protocol.gcode.sending": __plugin_implementation__.hook_gcode_sending,
+         "octoprint.comm.protocol.gcode.received": __plugin_implementation__.hook_gcode_received,
+         "octoprint.comm.protocol.gcode.queuing": __plugin_implementation__.hook_gcode_queuing,
          "octoprint.filemanager.extension_tree": __plugin_implementation__.get_extension_tree}
