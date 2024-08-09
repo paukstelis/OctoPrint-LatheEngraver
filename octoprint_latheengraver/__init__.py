@@ -726,7 +726,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         if self.TERMINATE:
             cmd = None, 
             return cmd
-        
+        assembly = {"X": None, "Z": None, "A": None, "B": None, "F": None, "S": None}
         match_x = re.search(r".*[Xx]\ *(-?[\d.]+).*", cmd)
         match_z = re.search(r".*[Zz]\ *(-?[\d.]+).*", cmd)
         match_a = re.search(r".*[Aa]\ *(-?[\d.]+).*", cmd)
@@ -738,6 +738,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         mod_a = 0
         track_plunge = False
         orig_cmd = cmd
+        newcmd = ''
 
         if match_z:
             self.queue_Z = float(match_z.groups(1)[0])
@@ -763,7 +764,16 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                     self.pauses_started = True
                     self._logger.info("Zmin now {0}".format(self.minZ))
                     track_plunge = True
-
+        
+        if track_plunge:
+            self.queued_command = orig_cmd
+            #self._logger.info(self.queued_command)
+            if self._printer.set_job_on_hold(True):
+                self._printer.pause_print()
+                cmd="M5"
+                self._printer.set_job_on_hold(False)
+                return cmd
+        
         if match_x:
             self.queue_X = float(match_x.groups(1)[0])
         if match_a:
@@ -773,7 +783,6 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             match_cmd = re.search(r"^(G[\d]+)\s?(G[\d]+)?\s?(G[\d]+)?.*", cmd)
             gcommands = []
             moves = ["G1", "G01", "G0", "G00"]
-            newcmd = ''
             #this is hacky. why does it put a 1 into the list if not present?
             if match_cmd.groups(1)[0] != 1: gcommands.append(match_cmd.groups(1)[0])
             if match_cmd.groups(1)[1] != 1: gcommands.append(match_cmd.groups(1)[1])
@@ -783,8 +792,9 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 return cmd
             
             for c in gcommands:
-                newcmd = newcmd + "{0} ".format(c)
-
+                #newcmd = newcmd + "{0} ".format(c)
+                newcmd = "{0} ".format(c)
+            
             #Only happens with ARCMOD
             if self.do_mod_z:
                 zmod = self.adjust_Z(self.queue_A, self.queue_Z)
@@ -796,10 +806,10 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 self.bangle = self.grblB
                 #invert bangle with X-axis inversion
                 bangle = math.radians(self.bangle)*-1
-
                 mod_x = self.queue_X*math.cos(bangle) + (self.queue_Z - zmod)*math.sin(bangle)
                 mod_z = -self.queue_X*math.sin(bangle) + (self.queue_Z - zmod)*math.cos(bangle)
                 mod_z_init = -self.queue_X*math.sin(bangle) + (0 - zmod)*math.cos(bangle)
+
                 #need to handle relative mode...damn you lightburn
                 #will have to redo this since there could very well be cases where do_mod_a and relative will have to go together
                 if self.do_mod_a:
@@ -807,50 +817,66 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                     newA, deltaZ = self.get_new_A(mod_z_init, self.queue_A)
                     mod_z = mod_z+deltaZ
                     #self._logger.info("mod_x: {0}, mod_z: {1}, mod_z_init: {2}".format(mod_x, mod_z, mod_z_init))
-                    newcmd = newcmd + "X{0:.4f} Z{1:.4f} A{2:.4f} ".format(mod_x, mod_z, newA)
+                    #newcmd = newcmd + "X{0:.4f} Z{1:.4f} A{2:.4f} ".format(mod_x, mod_z, newA)
+                    assembly["X"] = mod_x
+                    assembly["Z"] = mod_z
+                    assembly["A"] = newA
                 #have both X and A
                 elif self.relative and match_x and match_a:
-                    newcmd = newcmd + "X{0:.4f} Z{1:.4f} A{2:.4f} ".format(mod_x, mod_z, self.queue_A)
+                    #newcmd = newcmd + "X{0:.4f} Z{1:.4f} A{2:.4f} ".format(mod_x, mod_z, self.queue_A)
+                    assembly["X"] = mod_x
+                    assembly["Z"] = mod_z
+                    assembly["A"] = self.queue_A
                 #have X, but not A
                 elif self.relative and not match_a:
-                    newcmd = newcmd + "X{0:.4f} Z{1:.4f}".format(mod_x, mod_z)
+                    #newcmd = newcmd + "X{0:.4f} Z{1:.4f}".format(mod_x, mod_z)
+                    assembly["X"] = mod_x
+                    assembly["Z"] = mod_z
                 #absolute mode
                 elif not self.relative:
-                    newcmd = newcmd + "X{0:.4f} Z{1:.4f} A{2:.4f} ".format(mod_x, mod_z, self.queue_A)
-
+                    #newcmd = newcmd + "X{0:.4f} Z{1:.4f} A{2:.4f} ".format(mod_x, mod_z, self.queue_A)
+                    assembly["X"] = mod_x
+                    assembly["Z"] = mod_z
+                    assembly["A"] = self.queue_A
                 if self.relative and match_a and not match_x:
                     #just return A, might need to rethink this.
-                    newcmd = "{0} A{1:.4f} ".format(c, self.queue_A)
-
+                    #newcmd = "{0} A{1:.4f} ".format(c, self.queue_A)
+                    newcmd = "{0} ".format(c)
+                    assembly["A"] = self.queue_A
                 if match_b:
                     self.queue_B = float(match_b.groups(1)[0])
-                    newcmd = newcmd + "B{0:.4f} ".format(self.queue_B)
-                
+                    #newcmd = newcmd + "B{0:.4f} ".format(self.queue_B)
+                    assembly["B"] = self.queue_B
                 if match_f:
                     self.queue_F = float(match_f.groups(1)[0])
                     if self.Afeed:
                         if self.queue_F < self.minFeed:
                             self.queue_F = self.minFeed
-                    newcmd = newcmd + "F{0} ".format(self.queue_F)
-
+                    assembly["F"] = self.queue_F
+                    #newcmd = newcmd + "F{0} ".format(self.queue_F)
                 if match_s:
                     self.queue_S = float(match_s.groups(1)[0])
                     if self.S_limit:
                         if self.queue_S > self.S_val:
                             self.queue_S = self.S_val
-                    newcmd = newcmd + "S{0} ".format(self.queue_S)
+                    assembly["S"] = self.queue_S
+                    #newcmd = newcmd + "S{0} ".format(self.queue_S)
+                #Feed compensation scaled based on DIAM
+                if self.feed_comp:
+                    mod_f = self.queue_F * (self.DIAM/(self.DIAM+assembly["Z"]))
+                    assembly["F"] = mod_f
                 #self._logger.info(newcmd)
-                cmd = newcmd
-        if track_plunge:
-            self.queued_command = orig_cmd
-            self._logger.info(self.queued_command)
-            if self._printer.set_job_on_hold(True):
-                self._printer.pause_print()
-                cmd="M5"
-                self._printer.set_job_on_hold(False)
-                return cmd
-    
+                cmd = self.assemble_command(newcmd, assembly)
+
         return cmd
+
+    def assemble_command(self, newcmd, assembly):
+        cmd = newcmd
+        for key, value in assembly.items():
+            if value:
+                cmd = cmd+" {0}{1:.4f}".format(str(key), value)
+        return cmd
+                
 
     def get_new_A(self, zval, aval):
         radius = self.DIAM/2
@@ -877,6 +903,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         diff = math.sqrt(((self.maxarc/2)**2) - (aval**2))
         zmod = modDiam - (modDiam*math.cos(diff))
         return zmod*self.arcadd
+    
     #Not currently used, might want to revisit later
     def rot_trans_adjust(self, bvalues):
         #get absolute positions first
