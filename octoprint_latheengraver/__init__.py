@@ -894,7 +894,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
     
     def start_termination(self):
         #need these commands to be queued, so don't use Force
-        self._printer.commands(["G0 Z5", "M5", "M30", "TERMINATE"], force=False)
+        self._printer.commands(["G0 Z5", "M5", "M30", "TERMINATE"], force=True)
     
     # #-- gcode sending hook
     def hook_gcode_sending(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
@@ -1291,7 +1291,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             found = True
             foundZ = True
             #Don't let deep cuts get through
-            if self.template and self.cut_depth and self.grblZ < self.cut_depth:
+            if self.template and self.cut_depth and self.queue_Z < self.cut_depth:
                 return (None, )
 
         #ADD A and B here
