@@ -228,6 +228,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.datafile = 'bowlscan.txt'
         self.xscan = False
         self.ascan = False
+        self.a_profile = []
 
         # load up our item/value pairs for errors, warnings, and settings
         _bgs.load_grbl_descriptions(self)
@@ -703,7 +704,6 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             matchstr += "\n"
             return matchstr
 
-
     def write_datafile(self, data):
         path = os.path.join(self.datafolder, self.datafile)
         with open(path, "a") as settings_file:
@@ -873,6 +873,22 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         local_distance = distance - radius - zval
         #self._logger.info("Calc. Y: {0}, Distance: {1}, To Origin: {2}, Degrees: {3}, Zval: {4}".format(calc_Y, distance, to_origin, math.degrees(new_A), zval))
         return math.degrees(new_A), local_distance
+
+    def get_depth_mod(self, aval):
+        """
+        returns the Z value depth difference based on a scan around the a-axis (a_profile)
+        """
+        normal_aval = aval % 360
+        if normal_aval < 0:
+            normal_aval += 360
+        #linearly interpolate and return the depth (Z) difference
+        for i in range(len(self.a_profile) - 1):
+            z1, a1 = self.a_profile[i]
+            z2, a2 = self.a_profile[i + 1]
+            if a1 <= normal_aval <= a2:
+                # Perform linear interpolation
+                depth_value = z1 + (z2 - z1) * (normal_aval - a1) / (a2 - a1)
+                return depth_value
 
     def adjust_Z(self, aval, zval):
         modDiam = (self.DIAM/2) + zval
