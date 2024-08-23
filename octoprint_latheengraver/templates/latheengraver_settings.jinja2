@@ -64,6 +64,7 @@
 	            <option value="SIMPLE">Single point Z-Probe</option>
 	            <option value="MULTI">Multi point Z-Probe</option>
 				<option value="XSCAN">X axis probing scan</option>
+				<option value="ASCAN">A axis ovality scan</options>
 	        </select>
 	    </div>
 
@@ -144,6 +145,15 @@
 			<label class="control-label">X Scan Z pulloff</label>
 			<div class="controls">
 					<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.latheengraver.zprobe_xzhop, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm
+			</div>
+
+			<label class="control-label">A Scan increments (degrees)</label>
+			<div class="controls">
+					<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.latheengraver.aprobe_inc, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm
+			</div>
+			<label class="control-label">A Scan Z pulloff</label>
+			<div class="controls">
+					<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.latheengraver.aprobe_hop, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm
 			</div>
 			<br>
 

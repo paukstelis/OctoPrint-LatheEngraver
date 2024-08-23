@@ -117,6 +117,8 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.DIAM = float(0)
         self.maxarc = float(0)
         self.arcadd = float(1)
+
+        self.use_ascan = False
         
         self.template = False
         self.cut_depth = float(0.0)
@@ -225,6 +227,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.datafolder = ''
         self.datafile = 'bowlscan.txt'
         self.xscan = False
+        self.ascan = False
 
         # load up our item/value pairs for errors, warnings, and settings
         _bgs.load_grbl_descriptions(self)
@@ -305,6 +308,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             hasB = True,
             minZ_th = -1.0,
             track_plunge = False,
+            
         )
 
 
@@ -685,14 +689,19 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         )
 
     def parse_probe(self, line):
-        match = re.search(".*:([-]*\d*\.*\d*),\d\.000,([-]*\d*\.*\d*),.*", line)
+        #[PRB:-1.000,0.000,-10.705,0.000,0.000:1]
+        match = re.search(".*:([-]*\d*\.*\d*),\d\.000,([-]*\d*\.*\d*),([-]*\d*\.*\d*).*", line)
         self._logger.debug("Parse probe data")
         self._logger.debug(line)
         matchstr = ''
-        if match:
+        if match and self.xscan:
             matchstr = "{0},{1}".format(match.groups(1)[0],match.groups(1)[1])
             matchstr += "\n"
-        return matchstr
+            return matchstr
+        if match and self.ascan:
+            matchstr = "{0},{1}".format(match.groups(1)[1],match.groups(1)[2])
+            matchstr += "\n"
+            return matchstr
 
 
     def write_datafile(self, data):
@@ -904,7 +913,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
 
         # suppress temperature if machine is printing
         if "M105" in cmd.upper() or cmd.startswith(self.statusCommand):
-            if (self.disablePolling and self._printer.is_printing()) or len(self.lastRequest) > 0 or self.noStatusRequests or self.xscan:
+            if (self.disablePolling and self._printer.is_printing()) or len(self.lastRequest) > 0 or self.noStatusRequests or self.xscan or self.ascan:
                 self._logger.debug('Ignoring %s', cmd)
                 return (None, )
             else:
@@ -1086,6 +1095,9 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             os.system("blender -b -P {0}/{1} -- {2} {3} {2}".format(self.datafolder, "blender_probe_stl.py",\
                                                                     os.path.join(self.datafolder, self.datafile),\
                                                                     self.zProbeDiam))                                                                    
+            return (None, )
+        if cmd.upper() == "ASCANDONE":
+            self.ascan = False
             return (None, )
 
         # Grbl 1.1 Realtime Commands (requires Octoprint 1.8.0+)
@@ -1435,6 +1447,10 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 #parse x and z and append them to a file
                 data = self.parse_probe(line)
                 self.write_datafile(data)
+            if self._settings.get(["zprobeMethod"]) == "ASCAN" and self.ascan:
+                data = self.parse_probe(line)
+                self.write_datafile(data)
+                
             else:
                 _bgs.add_notifications(self, [line])
             return
@@ -1738,6 +1754,12 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                         _bgs.do_simple_zprobe(self, sessionId)
                     if method =="MULTIPOINT":
                         _bgs.do_multipoint_zprobe(self, sessionId)
+                    if method == "ASCAN":
+                        self.datafile = time.strftime("%Y%m%d-%H%M%S") + "_a-axis_scan.txt"
+                        _bgs.do_ascan_probe(self, sessionId)
+                        self.ascan = True
+                        data = ";begin A-axis scan\n"
+                        self.write_datafile(data)
                     if method == "XSCAN":
                         self.datafile = time.strftime("%Y%m%d-%H%M%S") + "_bowlscan.txt"
                         _bgs.do_xscan_zprobe(self, sessionId)

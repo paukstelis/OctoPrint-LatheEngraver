@@ -964,6 +964,30 @@ def defer_do_xy_probe(_plugin, position, axis, sessionId):
 
     do_xy_probe(_plugin, xyProbe._axes, sessionId)
 
+def do_ascan_probe(_plugin, sessionId):
+    xl, yl, zl = get_axes_limits(_plugin)
+    zTravel = zl if _plugin.zProbeTravel == 0 else _plugin.zProbeTravel
+    zTravel = zTravel * -1 * _plugin.invertZ
+    #Get our settings and spew out some gcode....this will be a long message
+    #zprobe_xdir = int(_plugin._settings.get(["zprobe_xdir"]))
+    #aprobe_xlen = int(_plugin._settings.get(["zprobe_xlen"]))
+    aprobe_hop = int(_plugin._settings.get(["aprobe_hop"]))
+    aprobe_inc = int(_plugin._settings.get(["aprobe_inc"]))
+    total_asteps = int(360/aprobe_inc)
+    asteps = 1
+    #First probing at X = 0
+    gcode = []
+    gcode.append("G92 A0")
+    gcode.append("G91 G21 G38.2 Z{} F100".format(zTravel))
+    while asteps < total_asteps:
+        gcode.append("G91 G21 G1 Z{} F500".format(aprobe_hop))
+        gcode.append("G91 G21 G1 A{} F500".format(aprobe_inc))
+        gcode.append("G91 G21 G38.2 Z{} F100".format(zTravel))
+        asteps+=1
+    gcode.append("ASCANDONE")
+    _plugin._printer.commands(gcode)
+    #zProbe._locations = [{"gcode": gcode,  "action": "xscan_zprobe", "location": "Current"}]
+
 def do_xscan_zprobe(_plugin, sessionId):
     #_plugin._logger.debug("_bgs: do_xscan_zprobe sessionId=[{}]".format(sessionId))
 
