@@ -733,22 +733,34 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             cmd = None, 
             return cmd
         
+        assembly = {"X": None, "Z": None, "A": None, "B": None, "F": None, "S": None}
+        track_plunge = False
+        orig_cmd = cmd
+        
+        newcmd = ''
+        match_cmd = re.search(r"^(G[\d]+)\s?(G[\d]+)?\s?(G[\d]+)?.*", cmd)
+        gcommands = []
+        moves = ["G1", "G01", "G0", "G00"]
+        #this is hacky. why does it put a 1 into the list if not present?
+        if match_cmd.groups(1)[0] != 1: gcommands.append(match_cmd.groups(1)[0])
+        if match_cmd.groups(1)[1] != 1: gcommands.append(match_cmd.groups(1)[1])
+        if match_cmd.groups(1)[2] != 1: gcommands.append(match_cmd.groups(1)[2])
+        if not any(c in gcommands for c in moves):
+            return cmd
+        for c in gcommands:
+            newcmd = newcmd + "{0} ".format(c)
+            #assembly["COMM"] = "{0} ".format(c)
+        self._logger.debug("new command is: {}".format(newcmd))
         match_x = re.search(r".*[Xx]\ *(-?[\d.]+).*", cmd)
         match_z = re.search(r".*[Zz]\ *(-?[\d.]+).*", cmd)
         match_a = re.search(r".*[Aa]\ *(-?[\d.]+).*", cmd)
         match_b = re.search(r".*[Bb]\ *(-?[\d.]+).*", cmd)
         match_f = re.search(r".*[Ff]\ *(-?[\d.]+).*", cmd)
         match_s = re.search(r".*[Ss]\ *(-?[\d.]+).*", cmd)
-        mod_x = 0
-        mod_z = 0
-        mod_a = 0
-        track_plunge = False
-        orig_cmd = cmd
-
+        
+        #single axis match things first
         if match_z:
             self.queue_Z = float(match_z.groups(1)[0])
-            #self._logger.info("Z value: {0}".format(self.queue_Z))
-            
             #template must be checked, cut_depth must be non-zero and the value must be less than cut_depth to start termination
             if self.template and self.cut_depth and self.queue_Z < self.cut_depth:
                 self.start_termination()
@@ -769,94 +781,76 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                     self.pauses_started = True
                     self._logger.info("Zmin now {0}".format(self.minZ))
                     track_plunge = True
-
-        if match_x:
-            self.queue_X = float(match_x.groups(1)[0])
-        if match_a:
-            self.queue_A = float(match_a.groups(1)[0])
-       
-        if self.do_bangle and self._printer.is_printing() and cmd.startswith("G"):
-            match_cmd = re.search(r"^(G[\d]+)\s?(G[\d]+)?\s?(G[\d]+)?.*", cmd)
-            gcommands = []
-            moves = ["G1", "G01", "G0", "G00"]
-            newcmd = ''
-            #this is hacky. why does it put a 1 into the list if not present?
-            if match_cmd.groups(1)[0] != 1: gcommands.append(match_cmd.groups(1)[0])
-            if match_cmd.groups(1)[1] != 1: gcommands.append(match_cmd.groups(1)[1])
-            if match_cmd.groups(1)[2] != 1: gcommands.append(match_cmd.groups(1)[2])
-
-            if not any(c in gcommands for c in moves):
-                return cmd
-            
-            for c in gcommands:
-                newcmd = newcmd + "{0} ".format(c)
-
-            #Only happens with ARCMOD
-            if self.do_mod_z:
-                zmod = self.adjust_Z(self.queue_A, self.queue_Z)
-                #self._logger.info("Z modified by {0}".format(zmod))
-            else:
-                zmod = 0.0
-
-            if match_x or match_z or match_a:
-                self.bangle = self.grblB
-                #invert bangle with X-axis inversion
-                bangle = math.radians(self.bangle)*-1
-
-                mod_x = self.queue_X*math.cos(bangle) + (self.queue_Z - zmod)*math.sin(bangle)
-                mod_z = -self.queue_X*math.sin(bangle) + (self.queue_Z - zmod)*math.cos(bangle)
-                mod_z_init = -self.queue_X*math.sin(bangle) + (0 - zmod)*math.cos(bangle)
-                #need to handle relative mode...damn you lightburn
-                #will have to redo this since there could very well be cases where do_mod_a and relative will have to go together
-                if self.do_mod_a:
-                    #mod_z_init used to prevent over rotation at deeper cuts at the expense of a tapered pocket.
-                    newA, deltaZ = self.get_new_A(mod_z_init, self.queue_A)
-                    mod_z = mod_z+deltaZ
-                    #self._logger.info("mod_x: {0}, mod_z: {1}, mod_z_init: {2}".format(mod_x, mod_z, mod_z_init))
-                    newcmd = newcmd + "X{0:.4f} Z{1:.4f} A{2:.4f} ".format(mod_x, mod_z, newA)
-                #have both X and A
-                elif self.relative and match_x and match_a:
-                    newcmd = newcmd + "X{0:.4f} Z{1:.4f} A{2:.4f} ".format(mod_x, mod_z, self.queue_A)
-                #have X, but not A
-                elif self.relative and not match_a:
-                    newcmd = newcmd + "X{0:.4f} Z{1:.4f}".format(mod_x, mod_z)
-                #absolute mode
-                elif not self.relative:
-                    newcmd = newcmd + "X{0:.4f} Z{1:.4f} A{2:.4f} ".format(mod_x, mod_z, self.queue_A)
-
-                if self.relative and match_a and not match_x:
-                    #just return A, might need to rethink this.
-                    newcmd = "{0} A{1:.4f} ".format(c, self.queue_A)
-
-                if match_b:
-                    self.queue_B = float(match_b.groups(1)[0])
-                    newcmd = newcmd + "B{0:.4f} ".format(self.queue_B)
-                
-                if match_f:
-                    self.queue_F = float(match_f.groups(1)[0])
-                    if self.Afeed:
-                        if self.queue_F < self.minFeed:
-                            self.queue_F = self.minFeed
-                    newcmd = newcmd + "F{0} ".format(self.queue_F)
-
-                if match_s:
-                    self.queue_S = float(match_s.groups(1)[0])
-                    if self.S_limit:
-                        if self.queue_S > self.S_val:
-                            self.queue_S = self.S_val
-                    newcmd = newcmd + "S{0} ".format(self.queue_S)
-                #self._logger.info(newcmd)
-                cmd = newcmd
+        
         if track_plunge:
             self.queued_command = orig_cmd
-            self._logger.info(self.queued_command)
+            #self._logger.info(self.queued_command)
             if self._printer.set_job_on_hold(True):
                 self._printer.pause_print()
                 cmd="M5"
                 self._printer.set_job_on_hold(False)
                 return cmd
-    
+              
+        if match_x:
+            self.queue_X = float(match_x.groups(1)[0])
+        if match_a:
+            self.queue_A = float(match_a.groups(1)[0])
+        if match_b:
+            self.queue_B = float(match_b.groups(1)[0])
+            assembly["B"] = self.queue_B
+        if match_f:
+            self.queue_F = float(match_f.groups(1)[0])
+            if self.Afeed:
+                if self.queue_F < self.minFeed:
+                    self.queue_F = self.minFeed
+            assembly["F"] = self.queue_F
+        if match_s:
+            self.queue_S = float(match_s.groups(1)[0])
+            if self.S_limit:
+                if self.queue_S > self.S_val:
+                    self.queue_S = self.S_val
+            assembly["S"] = self.queue_S
+
+        #begin multi-axis conditional things with modified coordinates
+        #these will hold the modifiers for any coordinate values
+        mod_x = 0
+        mod_z = 0.0
+        trans_x = self.queue_X
+        trans_z = self.queue_Z
+        trans_a = self.queue_A
+        zmod = 0.0
+        if match_x or match_z or match_a or match_b:
+
+            if self.do_mod_z:
+                zmod = self.adjust_Z(self.queue_A, self.queue_Z)
+                #zmod is some difference that gets subtracted from Z based on A angle
+                #self._logger.info("Z modified by {0}".format(zmod)
+
+            if self.do_ovality:
+                print("doing ovality things")
+                #mod_z is some difference to be added to Z
+                mod_z = mod_z
+                if not self.do_bangle:
+                    bangle = math.radians(self.queue_B)*-1
+                    trans_x = self.queue_X*math.cos(bangle) + (self.queue_Z - zmod + mod_z)*math.sin(bangle)
+                    trans_z = -self.queue_X*math.sin(bangle) + (self.queue_Z - zmod + mod_z)*math.cos(bangle)
+
+            if self.do_bangle: 
+                bangle = math.radians(self.queue_B)*-1
+                trans_x = self.queue_X*math.cos(bangle) + (self.queue_Z - zmod + mod_z)*math.sin(bangle)
+                trans_z = -self.queue_X*math.sin(bangle) + (self.queue_Z - zmod + mod_z)*math.cos(bangle)
+                trans_z_init = -self.queue_X*math.sin(bangle) + (0 - zmod + mod_z)*math.cos(bangle)
+                if self.do_mod_a:
+                    trans_a, deltaZ = self.get_new_A(trans_z_init, self.queue_A)
+                    trans_z = trans_z+deltaZ
+            
+        assembly["X"] = trans_x
+        assembly["Z"] = trans_z
+        assembly["A"] = trans_a
+        self._logger.debug("assembly is: {}".format(assembly))
+        cmd = self.assemble_command(newcmd, assembly)
         return cmd
+
 
     def get_new_A(self, zval, aval):
         radius = self.DIAM/2
