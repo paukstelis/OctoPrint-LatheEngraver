@@ -98,6 +98,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.queue_Z = float(0)
         self.queue_X = float(0)
         self.queue_A = float(0)
+        self.queue_B = float(0)
         self.grblActivePins = ""
         self.grblSpeed = float(0)
         self.grblPowerLevel = float(0)
@@ -118,8 +119,8 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.maxarc = float(0)
         self.arcadd = float(1)
 
-        self.use_ascan = False
-        
+        self.do_ovality = False
+        self.ascan_file = "ascan.txt"
         self.template = False
         self.cut_depth = float(0.0)
         self.minZ = float(0)
@@ -736,12 +737,15 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         assembly = {"X": None, "Z": None, "A": None, "B": None, "F": None, "S": None}
         track_plunge = False
         orig_cmd = cmd
-        
+        #this is need because B axis moves may not be emitted with 
+        self.queue_B = self.grblB
         newcmd = ''
         match_cmd = re.search(r"^(G[\d]+)\s?(G[\d]+)?\s?(G[\d]+)?.*", cmd)
         gcommands = []
         moves = ["G1", "G01", "G0", "G00"]
         #this is hacky. why does it put a 1 into the list if not present?
+        if not match_cmd:
+            return cmd
         if match_cmd.groups(1)[0] != 1: gcommands.append(match_cmd.groups(1)[0])
         if match_cmd.groups(1)[1] != 1: gcommands.append(match_cmd.groups(1)[1])
         if match_cmd.groups(1)[2] != 1: gcommands.append(match_cmd.groups(1)[2])
@@ -827,13 +831,17 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 #self._logger.info("Z modified by {0}".format(zmod)
 
             if self.do_ovality:
-                print("doing ovality things")
+                #print("doing ovality things")
                 #mod_z is some difference to be added to Z
-                mod_z = mod_z
+                mod_z = self.get_depth_mod(self.queue_A)
                 if not self.do_bangle:
                     bangle = math.radians(self.queue_B)*-1
-                    trans_x = self.queue_X*math.cos(bangle) + (self.queue_Z - zmod + mod_z)*math.sin(bangle)
-                    trans_z = -self.queue_X*math.sin(bangle) + (self.queue_Z - zmod + mod_z)*math.cos(bangle)
+                    #get the relative change in x and z based on change in z and the b angle
+                    trans_x = self.queue_X - mod_z*math.cos(bangle)
+                    trans_z = self.queue_Z + mod_z*math.sin(bangle)
+                    #trans_x = self.queue_X*math.cos(bangle) + (self.queue_Z - zmod + mod_z)*math.sin(bangle)
+                    #trans_z = -self.queue_X*math.sin(bangle) + (self.queue_Z - zmod + mod_z)*math.cos(bangle)
+                self._logger.debug("ovality mod_z is: {}".format(mod_z))
 
             if self.do_bangle: 
                 bangle = math.radians(self.queue_B)*-1
@@ -847,11 +855,19 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         assembly["X"] = trans_x
         assembly["Z"] = trans_z
         assembly["A"] = trans_a
+        assembly["B"] = self.queue_B
         self._logger.debug("assembly is: {}".format(assembly))
+        self._logger.debug("original values: X{0} Z{1}".format(self.queue_X, self.queue_Z))
         cmd = self.assemble_command(newcmd, assembly)
         return cmd
 
-
+    def assemble_command(self, newcmd, assembly):
+        cmd = newcmd
+        for key, value in assembly.items():
+            if value:
+                cmd = cmd+" {0}{1:.4f}".format(str(key), value)
+        return cmd
+    
     def get_new_A(self, zval, aval):
         radius = self.DIAM/2
         calc_Arad = math.radians(float(aval))
@@ -867,6 +883,37 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         local_distance = distance - radius - zval
         #self._logger.info("Calc. Y: {0}, Distance: {1}, To Origin: {2}, Degrees: {3}, Zval: {4}".format(calc_Y, distance, to_origin, math.degrees(new_A), zval))
         return math.degrees(new_A), local_distance
+
+    def get_a_profile(self, profile):
+        self.a_profile = []
+    
+        with open(profile, 'r') as file:
+            lines = file.readlines()
+            first_z, first_a = None, None
+            for line in lines:
+                line = line.strip()
+                # Skip lines that begin with a semicolon
+                if line.startswith(';'):
+                    continue
+                # Split the line into x and y components
+                z_str, a_str = line.split(',')
+                z, a = float(z_str), float(a_str)
+            
+                if first_z is None and first_a is None:
+                    # This is the first data point, set as reference
+                    first_z, first_a = z, a
+            
+                # Make the data points relative to the first data point
+                relative_z = first_z - z #flipped
+                relative_a = a - first_a
+            
+                # Add the relative coordinates as a tuple to the list
+                self.a_profile.append((float(format(relative_z, '.3f')), int(relative_a)))
+            #add first entry back as 360 degrees
+            self.a_profile.append((0.0,360))
+
+        self._logger.debug("Profile loaded with {0} points".format(len(self.a_profile)))
+        self._logger.debug(self.a_profile)
 
     def get_depth_mod(self, aval):
         """
@@ -893,6 +940,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         diff = math.sqrt(((self.maxarc/2)**2) - (aval**2))
         zmod = modDiam - (modDiam*math.cos(diff))
         return zmod*self.arcadd
+    
     #Not currently used, might want to revisit later
     def rot_trans_adjust(self, bvalues):
         #get absolute positions first
@@ -1879,6 +1927,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             self.track_plunge = bool(data["track_plunge"])
             self.minZ_th = float(data["minZ_th"])
             self.minZ_inc = float(data["minZ_inc"])
+            self.do_ovality = bool(data["ovality"])
             #allow either positive or negative
             if self.cut_depth > 0:
                 self.cut_depth = self.cut_depth * -1

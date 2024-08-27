@@ -38,7 +38,7 @@ $(function() {
         self.coordinate_system = ko.observable("G54");
 
         self.operator = ko.observable("=");
-        self.distances = ko.observableArray([.1, 1, 5, 10, 50, 100]);
+        self.distances = ko.observableArray([.1, 1, 5, 10, 60, 90]);
         self.distance = ko.observable(5);
 
         self.is_printing = ko.observable(false);
@@ -51,6 +51,7 @@ $(function() {
         self.minZ = ko.observable(0);
         self.minZ_th = ko.observable(0);
         self.minZ_inc = ko.observable(0);
+        self.ovality = ko.observable(false);
 
         self.mode = ko.observable("N/A");
         self.state = ko.observable("N/A");
@@ -161,7 +162,8 @@ $(function() {
                         "cut_depth": self.cut_depth(),
                         "track_plunge": self.track_plunge(),
                         "minZ_th": self.minZ_th(),
-                        "minZ_inc": self.minZ_inc() })
+                        "minZ_inc": self.minZ_inc(),
+                        "ovality": self.ovality() })
                     start_print_command();
                     dialog.modal('hide');
                 });

@@ -309,6 +309,10 @@ def on_event(_plugin, event, payload):
 
         _plugin.is_printing = True
         _plugin._settings.set_boolean(["is_printing"], _plugin.is_printing)
+
+        if _plugin.do_ovality:
+            path = os.path.join(_plugin.datafolder, _plugin.ascan_file)
+            _plugin.get_a_profile(path)
         
         #these should never be on in lasermode
         if is_laser_mode(_plugin):
