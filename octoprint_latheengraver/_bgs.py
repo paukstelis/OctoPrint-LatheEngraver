@@ -303,6 +303,13 @@ def on_event(_plugin, event, payload):
         _plugin.feedRate = 0
         _plugin.plungeRate = 0
         _plugin.powerRate = 0
+        _plugin.queue_X = None
+        _plugin.queue_Z = None
+        _plugin.queue_A = None
+        _plugin.queue_B = None
+        _plugin.queue_S = None
+        _plugin.queue_F = None
+        _plugin.bypass_queuing = False
 
         _plugin.grblState = "Run"
         _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_state", state="Run"))
@@ -332,7 +339,7 @@ def on_event(_plugin, event, payload):
 
         _plugin.is_printing = False
         _plugin._settings.set_boolean(["is_printing"], _plugin.is_printing)
-        _plugin.dobangle = False
+        _plugin.do_bangle = False
         _plugin.template = False
         _plugin.TERMINATE = False
         _plugin.cut_depth = 0.0
@@ -342,6 +349,13 @@ def on_event(_plugin, event, payload):
         _plugin.minZ_th = 0.0
         _plugin.pauses_started = False
         _plugin.minZ_inc = 0.0
+        _plugin.queue_X = None
+        _plugin.queue_Z = None
+        _plugin.queue_A = None
+        _plugin.queue_B = None
+        _plugin.queue_S = None
+        _plugin.queue_F = None
+        _plugin.bypass_queuing = False
         return
 
     # Print Cancelling
@@ -972,20 +986,20 @@ def do_ascan_probe(_plugin, sessionId):
     xl, yl, zl = get_axes_limits(_plugin)
     zTravel = zl if _plugin.zProbeTravel == 0 else _plugin.zProbeTravel
     zTravel = zTravel * -1 * _plugin.invertZ
-    #Get our settings and spew out some gcode....this will be a long message
-    #zprobe_xdir = int(_plugin._settings.get(["zprobe_xdir"]))
-    #aprobe_xlen = int(_plugin._settings.get(["zprobe_xlen"]))
     aprobe_hop = int(_plugin._settings.get(["aprobe_hop"]))
     aprobe_inc = int(_plugin._settings.get(["aprobe_inc"]))
     total_asteps = int(360/aprobe_inc)
+    _plugin._logger.debug("probe increment: {0}, total_asteps: {1}".format(aprobe_inc, total_asteps))
     asteps = 1
     #First probing at X = 0
     gcode = []
-    gcode.append("G92 A0")
+    gcode.append("STOPBANGLE")
+    gcode.append("STOPMODA")
+    gcode.append("STOPARCMOD")
     gcode.append("G91 G21 G38.2 Z{} F100".format(zTravel))
     while asteps < total_asteps:
-        gcode.append("G91 G21 G1 Z{} F500".format(aprobe_hop))
-        gcode.append("G91 G21 G1 A{} F500".format(aprobe_inc))
+        gcode.append("G91 G1 Z{} A{} F500".format(aprobe_hop, aprobe_inc))
+        #gcode.append("G91 G1 A{} F500".format(aprobe_inc))
         gcode.append("G91 G21 G38.2 Z{} F100".format(zTravel))
         asteps+=1
     gcode.append("ASCANDONE")

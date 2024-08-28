@@ -132,6 +132,8 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.TERMINATE = False
         self.job_on_hold = False
 
+        self.bypass_queuing = False
+
         self.relative = False
         self.tooldistance = 135.0
         self.timeRef = 0
@@ -496,6 +498,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
 
         if not "G90" in longCmds: longCmds.append("G90")
         if not "G91" in longCmds: longCmds.append("G91")
+        if not "G93" in longCmds: longCmds.append("G93")
 
         if not "G38.1" in longCmds: longCmds.append("G38.1")
         if not "G38.2" in longCmds: longCmds.append("G38.2")
@@ -734,10 +737,13 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             cmd = None, 
             return cmd
         
+        if self.ascan or self.xscan or self.bypass_queuing:
+            return cmd
+        
         assembly = {"X": None, "Z": None, "A": None, "B": None, "F": None, "S": None}
         track_plunge = False
         orig_cmd = cmd
-        #this is need because B axis moves may not be emitted with 
+        #this is needed because B axis moves may not be emitted
         self.queue_B = self.grblB
         newcmd = ''
         match_cmd = re.search(r"^(G[\d]+)\s?(G[\d]+)?\s?(G[\d]+)?.*", cmd)
@@ -831,23 +837,23 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 #self._logger.info("Z modified by {0}".format(zmod)
 
             if self.do_ovality:
-                #print("doing ovality things")
-                #mod_z is some difference to be added to Z
+                #mod_z is some difference
                 mod_z = self.get_depth_mod(self.queue_A)
                 if not self.do_bangle:
                     bangle = math.radians(self.queue_B)*-1
                     #get the relative change in x and z based on change in z and the b angle
-                    trans_x = self.queue_X - mod_z*math.cos(bangle)
-                    trans_z = self.queue_Z + mod_z*math.sin(bangle)
-                    #trans_x = self.queue_X*math.cos(bangle) + (self.queue_Z - zmod + mod_z)*math.sin(bangle)
-                    #trans_z = -self.queue_X*math.sin(bangle) + (self.queue_Z - zmod + mod_z)*math.cos(bangle)
+                    trans_x = self.queue_X - mod_z*math.sin(bangle)
+                    trans_z = self.queue_Z - mod_z*math.cos(bangle)
                 self._logger.debug("ovality mod_z is: {}".format(mod_z))
 
             if self.do_bangle: 
                 bangle = math.radians(self.queue_B)*-1
-                trans_x = self.queue_X*math.cos(bangle) + (self.queue_Z - zmod + mod_z)*math.sin(bangle)
-                trans_z = -self.queue_X*math.sin(bangle) + (self.queue_Z - zmod + mod_z)*math.cos(bangle)
-                trans_z_init = -self.queue_X*math.sin(bangle) + (0 - zmod + mod_z)*math.cos(bangle)
+                #this could use some cleanup
+                delta_x = mod_z*math.sin(bangle)
+                delta_z = mod_z*math.cos(bangle)
+                trans_x = self.queue_X*math.cos(bangle) + (self.queue_Z - zmod)*math.sin(bangle) - delta_x
+                trans_z = -self.queue_X*math.sin(bangle) + (self.queue_Z - zmod)*math.cos(bangle) - delta_z
+                trans_z_init = -self.queue_X*math.sin(bangle) + (0 - zmod)*math.cos(bangle) - delta_z
                 if self.do_mod_a:
                     trans_a, deltaZ = self.get_new_A(trans_z_init, self.queue_A)
                     trans_z = trans_z+deltaZ
@@ -1156,6 +1162,10 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             return (None, )
         if cmd.upper() == "ASCANDONE":
             self.ascan = False
+            return (None, )
+        
+        if cmd.upper() == "BYPASS":
+            self.bypass_queuing = True
             return (None, )
 
         # Grbl 1.1 Realtime Commands (requires Octoprint 1.8.0+)
