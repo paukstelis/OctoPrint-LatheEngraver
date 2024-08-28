@@ -98,6 +98,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.queue_Z = float(0)
         self.queue_X = float(0)
         self.queue_A = float(0)
+        self.queue_B = float(0)
         self.grblActivePins = ""
         self.grblSpeed = float(0)
         self.grblPowerLevel = float(0)
@@ -117,7 +118,9 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.DIAM = float(0)
         self.maxarc = float(0)
         self.arcadd = float(1)
-        
+
+        self.do_ovality = False
+        self.ascan_file = "ascan.txt"
         self.template = False
         self.cut_depth = float(0.0)
         self.minZ = float(0)
@@ -128,6 +131,8 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.queued_command = ""
         self.TERMINATE = False
         self.job_on_hold = False
+
+        self.bypass_queuing = False
 
         self.relative = False
         self.tooldistance = 135.0
@@ -225,6 +230,8 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.datafolder = ''
         self.datafile = 'bowlscan.txt'
         self.xscan = False
+        self.ascan = False
+        self.a_profile = []
 
         # load up our item/value pairs for errors, warnings, and settings
         _bgs.load_grbl_descriptions(self)
@@ -305,6 +312,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             hasB = True,
             minZ_th = -1.0,
             track_plunge = False,
+            
         )
 
 
@@ -490,6 +498,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
 
         if not "G90" in longCmds: longCmds.append("G90")
         if not "G91" in longCmds: longCmds.append("G91")
+        if not "G93" in longCmds: longCmds.append("G93")
 
         if not "G38.1" in longCmds: longCmds.append("G38.1")
         if not "G38.2" in longCmds: longCmds.append("G38.2")
@@ -685,15 +694,19 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         )
 
     def parse_probe(self, line):
-        match = re.search(".*:([-]*\d*\.*\d*),\d\.000,([-]*\d*\.*\d*),.*", line)
+        #[PRB:-1.000,0.000,-10.705,0.000,0.000:1]
+        match = re.search(".*:([-]*\d*\.*\d*),\d\.000,([-]*\d*\.*\d*),([-]*\d*\.*\d*).*", line)
         self._logger.debug("Parse probe data")
         self._logger.debug(line)
         matchstr = ''
-        if match:
+        if match and self.xscan:
             matchstr = "{0},{1}".format(match.groups(1)[0],match.groups(1)[1])
             matchstr += "\n"
-        return matchstr
-
+            return matchstr
+        if match and self.ascan:
+            matchstr = "{0},{1}".format(match.groups(1)[1],match.groups(1)[2])
+            matchstr += "\n"
+            return matchstr
 
     def write_datafile(self, data):
         path = os.path.join(self.datafolder, self.datafile)
@@ -724,22 +737,40 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             cmd = None, 
             return cmd
         
+        if self.ascan or self.xscan or self.bypass_queuing:
+            return cmd
+        
+        assembly = {"X": None, "Z": None, "A": None, "B": None, "F": None, "S": None}
+        track_plunge = False
+        orig_cmd = cmd
+        #this is needed because B axis moves may not be emitted
+        self.queue_B = self.grblB
+        newcmd = ''
+        match_cmd = re.search(r"^(G[\d]+)\s?(G[\d]+)?\s?(G[\d]+)?.*", cmd)
+        gcommands = []
+        moves = ["G1", "G01", "G0", "G00"]
+        #this is hacky. why does it put a 1 into the list if not present?
+        if not match_cmd:
+            return cmd
+        if match_cmd.groups(1)[0] != 1: gcommands.append(match_cmd.groups(1)[0])
+        if match_cmd.groups(1)[1] != 1: gcommands.append(match_cmd.groups(1)[1])
+        if match_cmd.groups(1)[2] != 1: gcommands.append(match_cmd.groups(1)[2])
+        if not any(c in gcommands for c in moves):
+            return cmd
+        for c in gcommands:
+            newcmd = newcmd + "{0} ".format(c)
+            #assembly["COMM"] = "{0} ".format(c)
+        self._logger.debug("new command is: {}".format(newcmd))
         match_x = re.search(r".*[Xx]\ *(-?[\d.]+).*", cmd)
         match_z = re.search(r".*[Zz]\ *(-?[\d.]+).*", cmd)
         match_a = re.search(r".*[Aa]\ *(-?[\d.]+).*", cmd)
         match_b = re.search(r".*[Bb]\ *(-?[\d.]+).*", cmd)
         match_f = re.search(r".*[Ff]\ *(-?[\d.]+).*", cmd)
         match_s = re.search(r".*[Ss]\ *(-?[\d.]+).*", cmd)
-        mod_x = 0
-        mod_z = 0
-        mod_a = 0
-        track_plunge = False
-        orig_cmd = cmd
-
+        
+        #single axis match things first
         if match_z:
             self.queue_Z = float(match_z.groups(1)[0])
-            #self._logger.info("Z value: {0}".format(self.queue_Z))
-            
             #template must be checked, cut_depth must be non-zero and the value must be less than cut_depth to start termination
             if self.template and self.cut_depth and self.queue_Z < self.cut_depth:
                 self.start_termination()
@@ -760,95 +791,89 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                     self.pauses_started = True
                     self._logger.info("Zmin now {0}".format(self.minZ))
                     track_plunge = True
-
-        if match_x:
-            self.queue_X = float(match_x.groups(1)[0])
-        if match_a:
-            self.queue_A = float(match_a.groups(1)[0])
-       
-        if self.do_bangle and self._printer.is_printing() and cmd.startswith("G"):
-            match_cmd = re.search(r"^(G[\d]+)\s?(G[\d]+)?\s?(G[\d]+)?.*", cmd)
-            gcommands = []
-            moves = ["G1", "G01", "G0", "G00"]
-            newcmd = ''
-            #this is hacky. why does it put a 1 into the list if not present?
-            if match_cmd.groups(1)[0] != 1: gcommands.append(match_cmd.groups(1)[0])
-            if match_cmd.groups(1)[1] != 1: gcommands.append(match_cmd.groups(1)[1])
-            if match_cmd.groups(1)[2] != 1: gcommands.append(match_cmd.groups(1)[2])
-
-            if not any(c in gcommands for c in moves):
-                return cmd
-            
-            for c in gcommands:
-                newcmd = newcmd + "{0} ".format(c)
-
-            #Only happens with ARCMOD
-            if self.do_mod_z:
-                zmod = self.adjust_Z(self.queue_A, self.queue_Z)
-                #self._logger.info("Z modified by {0}".format(zmod))
-            else:
-                zmod = 0.0
-
-            if match_x or match_z or match_a:
-                self.bangle = self.grblB
-                #invert bangle with X-axis inversion
-                bangle = math.radians(self.bangle)*-1
-
-                mod_x = self.queue_X*math.cos(bangle) + (self.queue_Z - zmod)*math.sin(bangle)
-                mod_z = -self.queue_X*math.sin(bangle) + (self.queue_Z - zmod)*math.cos(bangle)
-                mod_z_init = -self.queue_X*math.sin(bangle) + (0 - zmod)*math.cos(bangle)
-                #need to handle relative mode...damn you lightburn
-                #will have to redo this since there could very well be cases where do_mod_a and relative will have to go together
-                if self.do_mod_a:
-                    #mod_z_init used to prevent over rotation at deeper cuts at the expense of a tapered pocket.
-                    newA, deltaZ = self.get_new_A(mod_z_init, self.queue_A)
-                    mod_z = mod_z+deltaZ
-                    #self._logger.info("mod_x: {0}, mod_z: {1}, mod_z_init: {2}".format(mod_x, mod_z, mod_z_init))
-                    newcmd = newcmd + "X{0:.4f} Z{1:.4f} A{2:.4f} ".format(mod_x, mod_z, newA)
-                #have both X and A
-                elif self.relative and match_x and match_a:
-                    newcmd = newcmd + "X{0:.4f} Z{1:.4f} A{2:.4f} ".format(mod_x, mod_z, self.queue_A)
-                #have X, but not A
-                elif self.relative and not match_a:
-                    newcmd = newcmd + "X{0:.4f} Z{1:.4f}".format(mod_x, mod_z)
-                #absolute mode
-                elif not self.relative:
-                    newcmd = newcmd + "X{0:.4f} Z{1:.4f} A{2:.4f} ".format(mod_x, mod_z, self.queue_A)
-
-                if self.relative and match_a and not match_x:
-                    #just return A, might need to rethink this.
-                    newcmd = "{0} A{1:.4f} ".format(c, self.queue_A)
-
-                if match_b:
-                    self.queue_B = float(match_b.groups(1)[0])
-                    newcmd = newcmd + "B{0:.4f} ".format(self.queue_B)
-                
-                if match_f:
-                    self.queue_F = float(match_f.groups(1)[0])
-                    if self.Afeed:
-                        if self.queue_F < self.minFeed:
-                            self.queue_F = self.minFeed
-                    newcmd = newcmd + "F{0} ".format(self.queue_F)
-
-                if match_s:
-                    self.queue_S = float(match_s.groups(1)[0])
-                    if self.S_limit:
-                        if self.queue_S > self.S_val:
-                            self.queue_S = self.S_val
-                    newcmd = newcmd + "S{0} ".format(self.queue_S)
-                #self._logger.info(newcmd)
-                cmd = newcmd
+        
         if track_plunge:
             self.queued_command = orig_cmd
-            self._logger.info(self.queued_command)
+            #self._logger.info(self.queued_command)
             if self._printer.set_job_on_hold(True):
                 self._printer.pause_print()
                 cmd="M5"
                 self._printer.set_job_on_hold(False)
                 return cmd
-    
+              
+        if match_x:
+            self.queue_X = float(match_x.groups(1)[0])
+        if match_a:
+            self.queue_A = float(match_a.groups(1)[0])
+        if match_b:
+            self.queue_B = float(match_b.groups(1)[0])
+            assembly["B"] = self.queue_B
+        if match_f:
+            self.queue_F = float(match_f.groups(1)[0])
+            if self.Afeed:
+                if self.queue_F < self.minFeed:
+                    self.queue_F = self.minFeed
+            assembly["F"] = self.queue_F
+        if match_s:
+            self.queue_S = float(match_s.groups(1)[0])
+            if self.S_limit:
+                if self.queue_S > self.S_val:
+                    self.queue_S = self.S_val
+            assembly["S"] = self.queue_S
+
+        #begin multi-axis conditional things with modified coordinates
+        #these will hold the modifiers for any coordinate values
+        mod_x = 0
+        mod_z = 0.0
+        trans_x = self.queue_X
+        trans_z = self.queue_Z
+        trans_a = self.queue_A
+        zmod = 0.0
+        if match_x or match_z or match_a or match_b:
+
+            if self.do_mod_z:
+                zmod = self.adjust_Z(self.queue_A, self.queue_Z)
+                #zmod is some difference that gets subtracted from Z based on A angle
+                #self._logger.info("Z modified by {0}".format(zmod)
+
+            if self.do_ovality:
+                #mod_z is some difference
+                mod_z = self.get_depth_mod(self.queue_A)
+                if not self.do_bangle:
+                    bangle = math.radians(self.queue_B)*-1
+                    #get the relative change in x and z based on change in z and the b angle
+                    trans_x = self.queue_X - mod_z*math.sin(bangle)
+                    trans_z = self.queue_Z - mod_z*math.cos(bangle)
+                self._logger.debug("ovality mod_z is: {}".format(mod_z))
+
+            if self.do_bangle: 
+                bangle = math.radians(self.queue_B)*-1
+                #this could use some cleanup
+                delta_x = mod_z*math.sin(bangle)
+                delta_z = mod_z*math.cos(bangle)
+                trans_x = self.queue_X*math.cos(bangle) + (self.queue_Z - zmod)*math.sin(bangle) - delta_x
+                trans_z = -self.queue_X*math.sin(bangle) + (self.queue_Z - zmod)*math.cos(bangle) - delta_z
+                trans_z_init = -self.queue_X*math.sin(bangle) + (0 - zmod)*math.cos(bangle) - delta_z
+                if self.do_mod_a:
+                    trans_a, deltaZ = self.get_new_A(trans_z_init, self.queue_A)
+                    trans_z = trans_z+deltaZ
+            
+        assembly["X"] = trans_x
+        assembly["Z"] = trans_z
+        assembly["A"] = trans_a
+        assembly["B"] = self.queue_B
+        self._logger.debug("assembly is: {}".format(assembly))
+        self._logger.debug("original values: X{0} Z{1}".format(self.queue_X, self.queue_Z))
+        cmd = self.assemble_command(newcmd, assembly)
         return cmd
 
+    def assemble_command(self, newcmd, assembly):
+        cmd = newcmd
+        for key, value in assembly.items():
+            if value:
+                cmd = cmd+" {0}{1:.4f}".format(str(key), value)
+        return cmd
+    
     def get_new_A(self, zval, aval):
         radius = self.DIAM/2
         calc_Arad = math.radians(float(aval))
@@ -865,6 +890,53 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         #self._logger.info("Calc. Y: {0}, Distance: {1}, To Origin: {2}, Degrees: {3}, Zval: {4}".format(calc_Y, distance, to_origin, math.degrees(new_A), zval))
         return math.degrees(new_A), local_distance
 
+    def get_a_profile(self, profile):
+        self.a_profile = []
+    
+        with open(profile, 'r') as file:
+            lines = file.readlines()
+            first_z, first_a = None, None
+            for line in lines:
+                line = line.strip()
+                # Skip lines that begin with a semicolon
+                if line.startswith(';'):
+                    continue
+                # Split the line into x and y components
+                z_str, a_str = line.split(',')
+                z, a = float(z_str), float(a_str)
+            
+                if first_z is None and first_a is None:
+                    # This is the first data point, set as reference
+                    first_z, first_a = z, a
+            
+                # Make the data points relative to the first data point
+                relative_z = first_z - z #flipped
+                relative_a = a - first_a
+            
+                # Add the relative coordinates as a tuple to the list
+                self.a_profile.append((float(format(relative_z, '.3f')), int(relative_a)))
+            #add first entry back as 360 degrees
+            self.a_profile.append((0.0,360))
+
+        self._logger.debug("Profile loaded with {0} points".format(len(self.a_profile)))
+        self._logger.debug(self.a_profile)
+
+    def get_depth_mod(self, aval):
+        """
+        returns the Z value depth difference based on a scan around the a-axis (a_profile)
+        """
+        normal_aval = aval % 360
+        if normal_aval < 0:
+            normal_aval += 360
+        #linearly interpolate and return the depth (Z) difference
+        for i in range(len(self.a_profile) - 1):
+            z1, a1 = self.a_profile[i]
+            z2, a2 = self.a_profile[i + 1]
+            if a1 <= normal_aval <= a2:
+                # Perform linear interpolation
+                depth_value = z1 + (z2 - z1) * (normal_aval - a1) / (a2 - a1)
+                return depth_value
+
     def adjust_Z(self, aval, zval):
         modDiam = (self.DIAM/2) + zval
         aval = math.radians(aval)
@@ -874,6 +946,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         diff = math.sqrt(((self.maxarc/2)**2) - (aval**2))
         zmod = modDiam - (modDiam*math.cos(diff))
         return zmod*self.arcadd
+    
     #Not currently used, might want to revisit later
     def rot_trans_adjust(self, bvalues):
         #get absolute positions first
@@ -904,7 +977,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
 
         # suppress temperature if machine is printing
         if "M105" in cmd.upper() or cmd.startswith(self.statusCommand):
-            if (self.disablePolling and self._printer.is_printing()) or len(self.lastRequest) > 0 or self.noStatusRequests or self.xscan:
+            if (self.disablePolling and self._printer.is_printing()) or len(self.lastRequest) > 0 or self.noStatusRequests or self.xscan or self.ascan:
                 self._logger.debug('Ignoring %s', cmd)
                 return (None, )
             else:
@@ -1086,6 +1159,13 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             os.system("blender -b -P {0}/{1} -- {2} {3} {2}".format(self.datafolder, "blender_probe_stl.py",\
                                                                     os.path.join(self.datafolder, self.datafile),\
                                                                     self.zProbeDiam))                                                                    
+            return (None, )
+        if cmd.upper() == "ASCANDONE":
+            self.ascan = False
+            return (None, )
+        
+        if cmd.upper() == "BYPASS":
+            self.bypass_queuing = True
             return (None, )
 
         # Grbl 1.1 Realtime Commands (requires Octoprint 1.8.0+)
@@ -1435,6 +1515,10 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 #parse x and z and append them to a file
                 data = self.parse_probe(line)
                 self.write_datafile(data)
+            if self._settings.get(["zprobeMethod"]) == "ASCAN" and self.ascan:
+                data = self.parse_probe(line)
+                self.write_datafile(data)
+                
             else:
                 _bgs.add_notifications(self, [line])
             return
@@ -1738,6 +1822,12 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                         _bgs.do_simple_zprobe(self, sessionId)
                     if method =="MULTIPOINT":
                         _bgs.do_multipoint_zprobe(self, sessionId)
+                    if method == "ASCAN":
+                        self.datafile = time.strftime("%Y%m%d-%H%M%S") + "_a-axis_scan.txt"
+                        _bgs.do_ascan_probe(self, sessionId)
+                        self.ascan = True
+                        data = ";begin A-axis scan\n"
+                        self.write_datafile(data)
                     if method == "XSCAN":
                         self.datafile = time.strftime("%Y%m%d-%H%M%S") + "_bowlscan.txt"
                         _bgs.do_xscan_zprobe(self, sessionId)
@@ -1847,6 +1937,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             self.track_plunge = bool(data["track_plunge"])
             self.minZ_th = float(data["minZ_th"])
             self.minZ_inc = float(data["minZ_inc"])
+            self.do_ovality = bool(data["ovality"])
             #allow either positive or negative
             if self.cut_depth > 0:
                 self.cut_depth = self.cut_depth * -1
