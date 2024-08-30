@@ -892,31 +892,34 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
 
     def get_a_profile(self, profile):
         self.a_profile = []
-    
-        with open(profile, 'r') as file:
-            lines = file.readlines()
-            first_z, first_a = None, None
-            for line in lines:
-                line = line.strip()
-                # Skip lines that begin with a semicolon
-                if line.startswith(';'):
-                    continue
-                # Split the line into x and y components
-                z_str, a_str = line.split(',')
-                z, a = float(z_str), float(a_str)
+        try: 
+            with open(profile, 'r') as file:
+                lines = file.readlines()
+                first_z, first_a = None, None
+                for line in lines:
+                    line = line.strip()
+                    # Skip lines that begin with a semicolon
+                    if line.startswith(';'):
+                        continue
+                    # Split the line into x and y components
+                    z_str, a_str = line.split(',')
+                    z, a = float(z_str), float(a_str)
             
-                if first_z is None and first_a is None:
-                    # This is the first data point, set as reference
-                    first_z, first_a = z, a
+                    if first_z is None and first_a is None:
+                        # This is the first data point, set as reference
+                        first_z, first_a = z, a
             
-                # Make the data points relative to the first data point
-                relative_z = first_z - z #flipped
-                relative_a = a - first_a
+                    # Make the data points relative to the first data point
+                    relative_z = first_z - z #flipped
+                    relative_a = a - first_a
             
-                # Add the relative coordinates as a tuple to the list
-                self.a_profile.append((float(format(relative_z, '.3f')), int(relative_a)))
-            #add first entry back as 360 degrees
-            self.a_profile.append((0.0,360))
+                    # Add the relative coordinates as a tuple to the list
+                    self.a_profile.append((float(format(relative_z, '.3f')), int(relative_a)))
+                #add first entry back as 360 degrees
+                self.a_profile.append((0.0,360))
+        except:
+            self._logger.info("Could not load profile. Ovality correction not active")
+            self.do_ovality = False
 
         self._logger.debug("Profile loaded with {0} points".format(len(self.a_profile)))
         self._logger.debug(self.a_profile)
