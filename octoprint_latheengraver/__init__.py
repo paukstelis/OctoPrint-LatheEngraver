@@ -737,7 +737,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             cmd = None, 
             return cmd
         
-        if self.ascan or self.xscan or self.bypass_queuing:
+        if self.ascan or self.xscan or self.bypass_queuing or not self._printer.is_printing():
             return cmd
         
         assembly = {"X": None, "Z": None, "A": None, "B": None, "F": None, "S": None}
