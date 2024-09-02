@@ -299,16 +299,16 @@ def on_event(_plugin, event, payload):
             _plugin._printer.cancel_print()
             return
 
-        # reset our rate overrides
+        # reset our rate/position overrides
         _plugin.feedRate = 0
         _plugin.plungeRate = 0
         _plugin.powerRate = 0
-        _plugin.queue_X = None
-        _plugin.queue_Z = None
-        _plugin.queue_A = None
-        _plugin.queue_B = None
-        _plugin.queue_S = None
-        _plugin.queue_F = None
+        _plugin.queue_X = _plugin.grblX
+        _plugin.queue_Z = _plugin.grblZ
+        _plugin.queue_A = _plugin.grblA
+        _plugin.queue_B = _plugin.grblB
+        _plugin.queue_S = 0.0
+        _plugin.queue_F = 0.0
         _plugin.bypass_queuing = False
 
         _plugin.grblState = "Run"
@@ -349,12 +349,10 @@ def on_event(_plugin, event, payload):
         _plugin.minZ_th = 0.0
         _plugin.pauses_started = False
         _plugin.minZ_inc = 0.0
-        _plugin.queue_X = None
-        _plugin.queue_Z = None
-        _plugin.queue_A = None
-        _plugin.queue_B = None
-        _plugin.queue_S = None
-        _plugin.queue_F = None
+        _plugin.queue_X = 0.0
+        _plugin.queue_Z = 0.0
+        _plugin.queue_A = 0.0
+        _plugin.queue_B = 0.0
         _plugin.bypass_queuing = False
         return
 
