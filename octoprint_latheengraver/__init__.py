@@ -813,6 +813,8 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             if self.Afeed:
                 if self.queue_F < self.minFeed:
                     self.queue_F = self.minFeed
+            if self.feedRate != 0:
+                self.queue_F = self.queue_F * self.feedRate
             assembly["F"] = self.queue_F
         if match_s:
             self.queue_S = float(match_s.groups(1)[0])
@@ -1384,7 +1386,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         if not match is None:
             self.grblB = float(match.groups(1)[0]) if self.positioning == 0 else self.grblB + float(match.groups(1)[0])
             found = True
-
+        '''
         # match = re.search(r"^[GM]([0][01234]|[01234])(\D.*[Ff]|[Ff])\ *(-?[\d.]+).*", command)
         match = re.search(r".*[Ff]\ *(-?[\d.]+).*", cmd)
         if not match is None:
@@ -1413,7 +1415,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
 
             self.grblSpeed = grblSpeed
             found = True
-
+        '''
         # match = re.search(r"^[GM]([0][01234]|[01234])(\D.*[Ss]|[Ss])\ *(-?[\d.]+).*", command)
         match = re.search(r".*[Ss]\ *(-?[\d.]+).*", cmd)
         if not match is None:
