@@ -106,6 +106,13 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.coolant = "M9"
         self.grblCoordinateSystem = "G54"
         self.babystep = 0
+        self.match_cmd = re.compile(r"^(G[\d]+)\s?(G[\d]+)?\s?(G[\d]+)?.*")
+        self.match_x = re.compile(r".*[Xx]\ *(-?[\d.]+).*")
+        self.match_z = re.compile(r".*[Zz]\ *(-?[\d.]+).*")
+        self.match_a = re.compile(r".*[Aa]\ *(-?[\d.]+).*")
+        self.match_b = re.compile(r".*[Bb]\ *(-?[\d.]+).*")
+        self.match_f = re.compile(r".*[Ff]\ *(-?[\d.]+).*")
+        self.match_s = re.compile(r".*[Ss]\ *(-?[\d.]+).*")
 
         self.do_bangle = False
         self.do_mod_a = False
@@ -744,11 +751,12 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         track_plunge = False
         orig_cmd = cmd
         #this is needed because B axis moves may not be emitted
-        self.queue_B = self.grblB
+        #self.queue_B = self.grblB
         newcmd = ''
-        match_cmd = re.search(r"^(G[\d]+)\s?(G[\d]+)?\s?(G[\d]+)?.*", cmd)
+        match_cmd = self.match_cmd.match(cmd)
         gcommands = []
         moves = ["G1", "G01", "G0", "G00"]
+        
         #this is hacky. why does it put a 1 into the list if not present?
         if not match_cmd:
             return cmd
@@ -761,12 +769,13 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             newcmd = newcmd + "{0} ".format(c)
             #assembly["COMM"] = "{0} ".format(c)
         self._logger.debug("new command is: {}".format(newcmd))
-        match_x = re.search(r".*[Xx]\ *(-?[\d.]+).*", cmd)
-        match_z = re.search(r".*[Zz]\ *(-?[\d.]+).*", cmd)
-        match_a = re.search(r".*[Aa]\ *(-?[\d.]+).*", cmd)
-        match_b = re.search(r".*[Bb]\ *(-?[\d.]+).*", cmd)
-        match_f = re.search(r".*[Ff]\ *(-?[\d.]+).*", cmd)
-        match_s = re.search(r".*[Ss]\ *(-?[\d.]+).*", cmd)
+        
+        match_x = self.match_x.match(cmd)
+        match_z = self.match_z.match(cmd)
+        match_a = self.match_a.match(cmd)
+        match_b = self.match_b.match(cmd)
+        match_f = self.match_f.match(cmd)
+        match_s = self.match_s.match(cmd)
         
         #single axis match things first
         if match_z:
@@ -1386,36 +1395,18 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         if not match is None:
             self.grblB = float(match.groups(1)[0]) if self.positioning == 0 else self.grblB + float(match.groups(1)[0])
             found = True
-        '''
+        
         # match = re.search(r"^[GM]([0][01234]|[01234])(\D.*[Ff]|[Ff])\ *(-?[\d.]+).*", command)
         match = re.search(r".*[Ff]\ *(-?[\d.]+).*", cmd)
         if not match is None:
             grblSpeed = float(match.groups(1)[0])
-
-            if (self.feedRate != 0 or self.plungeRate != 0) and grblSpeed != 0:
-                # check if feed rate is overridden
-                if self.feedRate != 0:
-                    if not foundZ:
-                        grblSpeed = grblSpeed * self.feedRate
-                        cmd = cmd.upper().replace("F" + match.groups(1)[0], "F{:.3f}".format(grblSpeed))
-                        cmd = cmd.upper().replace("F " + match.groups(1)[0], "F {:.3f}".format(grblSpeed))
-                        # self._logger.debug("feed rate modified from [{}] to [{}]".format(match.groups(1)[0], grblSpeed))
-
-                # check if plunge rate is overridden
-                if self.plungeRate != 0:
-                    if foundZ:
-                        grblSpeed = grblSpeed * self.plungeRate
-                        cmd = cmd.upper().replace("F" + match.groups(1)[0], "F{:.3f}".format(grblSpeed))
-                        cmd = cmd.upper().replace("F " + match.groups(1)[0], "F {:.3f}".format(grblSpeed))
-                        # self._logger.debug("plunge rate modified from [{}] to [{}]".format(match.groups(1)[0], grblSpeed))
-
             # make sure we post all speed on / off events
             if (grblSpeed == 0 and self.grblSpeed != 0) or (self.grblSpeed == 0 and grblSpeed != 0):
                 self.timeRef = 0
 
             self.grblSpeed = grblSpeed
             found = True
-        '''
+        
         # match = re.search(r"^[GM]([0][01234]|[01234])(\D.*[Ss]|[Ss])\ *(-?[\d.]+).*", command)
         match = re.search(r".*[Ss]\ *(-?[\d.]+).*", cmd)
         if not match is None:
