@@ -750,8 +750,8 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         assembly = {"X": None, "Z": None, "A": None, "B": None, "F": None, "S": None}
         track_plunge = False
         orig_cmd = cmd
-        #this is needed because B axis moves may not be emitted
-        #self.queue_B = self.grblB
+        #this is needed because B axis moves may not be emitted.
+        self.queue_B = self.grblB
         newcmd = ''
         match_cmd = self.match_cmd.match(cmd)
         gcommands = []
@@ -882,7 +882,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         cmd = newcmd
         for key, value in assembly.items():
             if value:
-                cmd = cmd+" {0}{1:.4f}".format(str(key), value)
+                cmd = cmd+"{0}{1:.4f}".format(str(key), value)
         return cmd
     
     def get_new_A(self, zval, aval):

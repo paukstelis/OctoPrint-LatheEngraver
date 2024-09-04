@@ -287,6 +287,17 @@ def on_event(_plugin, event, payload):
         add_notifications(_plugin, ["Pgm Begin"])
         # threading.Thread(target=send_command_now, args=(_plugin._printer, _plugin._logger, "?")).start()
         _plugin._printer.commands("?", force=True)
+        # reset our rate/position overrides
+        _plugin.feedRate = 0
+        _plugin.plungeRate = 0
+        _plugin.powerRate = 0
+        _plugin.queue_X = _plugin.grblX
+        _plugin.queue_Z = _plugin.grblZ
+        _plugin.queue_A = _plugin.grblA
+        _plugin.queue_B = _plugin.grblB
+        _plugin.queue_S = 0.0
+        _plugin.queue_F = 0.0
+        _plugin.bypass_queuing = False
         return
 
     # 'PrintStarted'
@@ -299,17 +310,7 @@ def on_event(_plugin, event, payload):
             _plugin._printer.cancel_print()
             return
 
-        # reset our rate/position overrides
-        _plugin.feedRate = 0
-        _plugin.plungeRate = 0
-        _plugin.powerRate = 0
-        _plugin.queue_X = _plugin.grblX
-        _plugin.queue_Z = _plugin.grblZ
-        _plugin.queue_A = _plugin.grblA
-        _plugin.queue_B = _plugin.grblB
-        _plugin.queue_S = 0.0
-        _plugin.queue_F = 0.0
-        _plugin.bypass_queuing = False
+
 
         _plugin.grblState = "Run"
         _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_state", state="Run"))
@@ -352,7 +353,7 @@ def on_event(_plugin, event, payload):
         _plugin.queue_X = 0.0
         _plugin.queue_Z = 0.0
         _plugin.queue_A = 0.0
-        _plugin.queue_B = 0.0
+        _plugin.queue_B = _plugin.grblB
         _plugin.bypass_queuing = False
         return
 
