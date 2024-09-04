@@ -254,7 +254,7 @@
       <span class="input-append control-box">
           <input type="number" class="input-mini" style="width:40px;" min="1" step="1" data-bind="textInput: feedRate, event: { blur: resetFeedRateDisplay, focus: cancelFeedRateDisplayReset }, css: { pulsate_text_opacity: feedRateResetter() !== undefined }">
           <span class="add-on">%</span>
-          <button class="btn" data-bind="enable: is_operational() && is_printing() && feedRate(), click: function() { $root.sendCommand('feedRate') }">Set</button>
+          <button class="btn" data-bind="enable: is_operational() && feedRate(), click: function() { $root.sendCommand('feedRate') }">Set</button>
       </span>
   </span>
 

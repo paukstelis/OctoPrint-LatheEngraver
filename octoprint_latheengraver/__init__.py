@@ -766,7 +766,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         if not any(c in gcommands for c in moves):
             return cmd
         for c in gcommands:
-            newcmd = newcmd + "{0} ".format(c)
+            newcmd = newcmd + "{0}".format(c)
             #assembly["COMM"] = "{0} ".format(c)
         self._logger.debug("new command is: {}".format(newcmd))
         
@@ -882,7 +882,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         cmd = newcmd
         for key, value in assembly.items():
             if value:
-                cmd = cmd+"{0}{1:.4f}".format(str(key), value)
+                cmd = cmd+" {0}{1:.4f}".format(str(key), value)
         return cmd
     
     def get_new_A(self, zval, aval):

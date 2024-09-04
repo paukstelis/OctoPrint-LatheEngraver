@@ -288,9 +288,6 @@ def on_event(_plugin, event, payload):
         # threading.Thread(target=send_command_now, args=(_plugin._printer, _plugin._logger, "?")).start()
         _plugin._printer.commands("?", force=True)
         # reset our rate/position overrides
-        _plugin.feedRate = 0
-        _plugin.plungeRate = 0
-        _plugin.powerRate = 0
         _plugin.queue_X = _plugin.grblX
         _plugin.queue_Z = _plugin.grblZ
         _plugin.queue_A = _plugin.grblA
@@ -337,7 +334,7 @@ def on_event(_plugin, event, payload):
     if event in (Events.PRINT_CANCELLED, Events.PRINT_DONE, Events.PRINT_FAILED):
         _plugin.grblState = "Idle"
         _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_state", state="Idle"))
-
+        _plugin.feedRate = 0.0
         _plugin.is_printing = False
         _plugin._settings.set_boolean(["is_printing"], _plugin.is_printing)
         _plugin.do_bangle = False
