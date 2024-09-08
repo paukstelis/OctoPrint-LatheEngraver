@@ -35,6 +35,11 @@ from . import _bgs
 
 import octoprint.plugin
 
+from io import BytesIO
+from pathlib import Path
+from octoprint.filemanager.util import StreamWrapper
+from octoprint.filemanager.destinations import FileDestinations
+
 import sys
 import os
 import time
@@ -235,6 +240,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
 
         self.octoprintVersion = octoprint.server.VERSION
         self.datafolder = ''
+        self.scanfolder = ''
         self.datafile = 'bowlscan.txt'
         self.xscan = False
         self.ascan = False
@@ -325,7 +331,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
 
     def on_after_startup(self):
         self._logger.debug("__init__: on_after_startup")
-        self.datafolder = self.get_plugin_data_folder()
+        self.scanfolder = os.path.join(self._settings.getBaseFolder("uploads"),"scans")
 
         # establish initial state for printer status
         self._settings.set_boolean(["is_printing"], self._printer.is_printing())
@@ -716,7 +722,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             return matchstr
 
     def write_datafile(self, data):
-        path = os.path.join(self.datafolder, self.datafile)
+        path = os.path.join(self.scanfolder, self.datafile)
         with open(path, "a") as settings_file:
             settings_file.write(data)
         settings_file.close()
@@ -1169,9 +1175,14 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         
         if cmd.upper() == "SCANDONE":
             self.xscan = False
+            #copy file to scans
+            #source_on_disk = os.path.join(self.datafolder, self.datafile)
+            #dest_on_disk = os.path.join(self._settings.getBaseFolder("uploads"),"scans",self.datafile)
+            #self._logger.info(dest_on_disk)
+            #self._file_manager.copy_file(FileDestinations.LOCAL, source_on_disk, dest_on_disk)
             #do Blender call here, should probably have a setting available to check if blender is present?
-            os.system("blender -b -P {0}/{1} -- {2} {3} {2}".format(self.datafolder, "blender_probe_stl.py",\
-                                                                    os.path.join(self.datafolder, self.datafile),\
+            os.system("blender -b -P {0}/{1} -- {2} {3} {2}".format(self.scanfolder, "blender_probe_stl.py",\
+                                                                    os.path.join(self.scanfolder, self.datafile),\
                                                                     self.zProbeDiam))                                                                    
             return (None, )
         if cmd.upper() == "ASCANDONE":
