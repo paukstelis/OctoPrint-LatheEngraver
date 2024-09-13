@@ -172,6 +172,38 @@ $(function() {
             return false;
         };
 
+        self.fetchScanFiles = function(scantype) {
+            OctoPrint.files.listForLocation("local/scans", false)
+                .done(function(data) {
+                    var scanFiles = data.children
+                    console.log(scanFiles);
+                    if (scantype) {
+                        scanFiles = scanFiles.filter(file => file.name.includes(scantype));
+                    }
+                    scanFiles.sort((a,b) => { return a.name.localeCompare(b.name) });
+                    //self.scanFiles = scanFiles;
+                    populateFileSelector(scanFiles, "#"+scantype+"_scan_select");
+                })
+                .fail(function() {
+                    console.error("Failed to fetch scan files.");
+                });
+        };
+
+        function populateFileSelector(files, elem) {
+            var fileSelector = $(elem);
+            fileSelector.empty();
+            fileSelector.append($("<option>").text("Select file").attr("value", ""));
+            var i = 0;
+            files.forEach(function(file) {
+                var option = $("<option>")
+                    .text(file.display)
+                    .attr("value", file.name)
+                    .attr("index", i); // Store metadata in data attribute
+                    fileSelector.append(option);
+                i++;
+            });
+        }
+
         function showDialog(dialogId, confirmFunction){
             var myDialog = $(dialogId);
             var confirmButton = $("button.btn-confirm", myDialog);

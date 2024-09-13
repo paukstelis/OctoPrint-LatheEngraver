@@ -228,11 +228,9 @@
    </span>
 
    <span id="laser_buttons" style="display: inline-block; vertical-align: top; margin: 20px 0px 20px 0px" >
-      <!-- ko if: settings.settings.plugins.latheengraver.laserMode -->
-        <button id="grblLaserButton" class="btn" style="width: 140px; border: 1px solid;" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() { toggleWeak() }">Weak Laser</button>
-        <br>
-        <br>
-      <!-- /ko -->
+      <button id="grblLaserButton" class="btn" style="width: 140px; border: 1px solid;" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() { toggleWeak() }">Weak Laser</button>
+      <br>
+      <br>
       <button class="btn" style="width: 140px; border: 1px solid;" data-bind="enable: is_operational(), click: function() { sendCommand('reset') }">Soft Reset</button>
       <br>
       <br>
@@ -325,6 +323,10 @@
             <label for="template">Enable ovality correction:
                <input id="template" type="checkbox" checked data-bind="checked: ovality">
                <i class="icon icon-info-sign" title="Corrects depth-of-cut based on A-axis angles. Requires A-axis probing or zone data with established zero position." data-toggle="tooltip"></i>
+               <label for="ovality_scan_select">Select Ovality Scan:</label>
+                    <select id="ovality_scan_select">
+                        <option value="">Loading...</option>
+               </select>
             </label>
          </div>
          <div>

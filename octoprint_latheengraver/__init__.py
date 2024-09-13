@@ -723,6 +723,8 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
 
     def write_datafile(self, data):
         path = os.path.join(self.scanfolder, self.datafile)
+        if not self.file_manager.folder_exists(FileDestinations.LOCAL, "scans"):
+            self.file_manager.add_folder(FileDestinations.LOCAL, "scans")
         with open(path, "a") as settings_file:
             settings_file.write(data)
         settings_file.close()
@@ -1139,6 +1141,17 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 
             return (None, )
         
+        if cmd.upper().startswith("$32"):
+            laservalue = re.search(r"$32=(\d)", cmd)
+            if laservalue:
+                val = int(laservalue.groups(1)(0))
+                self._logger.info(f"Laser is {val}")
+                if val:
+                    self._settings.set(["laserMode"], True)
+                else:
+                    self._settings.set(["laserMode"], False)
+            return (cmd, )
+
         if cmd.upper().startswith("ARCADD"):
             arcadd_match = re.search(r"ARCADD ([\d.]+)", cmd)
             if arcadd_match:
@@ -1175,15 +1188,13 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         
         if cmd.upper() == "SCANDONE":
             self.xscan = False
-            #copy file to scans
-            #source_on_disk = os.path.join(self.datafolder, self.datafile)
-            #dest_on_disk = os.path.join(self._settings.getBaseFolder("uploads"),"scans",self.datafile)
-            #self._logger.info(dest_on_disk)
-            #self._file_manager.copy_file(FileDestinations.LOCAL, source_on_disk, dest_on_disk)
             #do Blender call here, should probably have a setting available to check if blender is present?
-            os.system("blender -b -P {0}/{1} -- {2} {3} {2}".format(self.scanfolder, "blender_probe_stl.py",\
+            try:
+                os.system("blender -b -P {0}/{1} -- {2} {3} {2}".format(self.scanfolder, "blender_probe_stl.py",\
                                                                     os.path.join(self.scanfolder, self.datafile),\
                                                                     self.zProbeDiam))                                                                    
+            except:
+                self._logger.info("Failed Blender call")
             return (None, )
         if cmd.upper() == "ASCANDONE":
             self.ascan = False
