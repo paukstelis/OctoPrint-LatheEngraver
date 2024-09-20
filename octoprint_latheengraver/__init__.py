@@ -881,7 +881,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
     def assemble_command(self, newcmd, assembly):
         cmd = newcmd
         for key, value in assembly.items():
-            if value:
+            if value is not None:
                 cmd = cmd+" {0}{1:.4f}".format(str(key), value)
         return cmd
     
