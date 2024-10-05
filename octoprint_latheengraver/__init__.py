@@ -740,7 +740,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
     def hook_gcode_queuing(self, comm_instance, phase, cmd, cmd_type, gcode, tags, *args, **kwargs):
         
         #if terminate has started, we aren't going to queue or send any more gcode, all commands are skipped
-        if self.TERMINATE:
+        if self.TERMINATE and cmd.upper() != "M30":
             cmd = None, 
             return cmd
         
@@ -756,7 +756,14 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         match_cmd = self.match_cmd.match(cmd)
         gcommands = []
         moves = ["G1", "G01", "G0", "G00"]
-        
+         
+        match_x = self.match_x.match(cmd)
+        match_z = self.match_z.match(cmd)
+        match_a = self.match_a.match(cmd)
+        match_b = self.match_b.match(cmd)
+        match_f = self.match_f.match(cmd)
+        match_s = self.match_s.match(cmd)
+        #Have to track position resets...hmmm
         #this is hacky. why does it put a 1 into the list if not present?
         if not match_cmd:
             return cmd
@@ -769,14 +776,6 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             newcmd = newcmd + "{0}".format(c)
             #assembly["COMM"] = "{0} ".format(c)
         self._logger.debug("new command is: {}".format(newcmd))
-        
-        match_x = self.match_x.match(cmd)
-        match_z = self.match_z.match(cmd)
-        match_a = self.match_a.match(cmd)
-        match_b = self.match_b.match(cmd)
-        match_f = self.match_f.match(cmd)
-        match_s = self.match_s.match(cmd)
-        
         #single axis match things first
         if match_z:
             self.queue_Z = float(match_z.groups(1)[0])

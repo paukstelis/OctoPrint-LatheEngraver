@@ -347,11 +347,12 @@ def on_event(_plugin, event, payload):
         _plugin.minZ_th = 0.0
         _plugin.pauses_started = False
         _plugin.minZ_inc = 0.0
-        _plugin.queue_X = 0.0
-        _plugin.queue_Z = 0.0
-        _plugin.queue_A = 0.0
+        _plugin.queue_X = _plugin.grblX
+        _plugin.queue_Z = _plugin.grblZ
+        _plugin.queue_A = _plugin.grblA
         _plugin.queue_B = _plugin.grblB
         _plugin.bypass_queuing = False
+        _plugin._printer.fake_ack()
         return
 
     # Print Cancelling
