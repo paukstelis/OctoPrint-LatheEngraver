@@ -270,6 +270,7 @@ def on_event(_plugin, event, payload):
 
         _plugin.fluidConfig = None
         _plugin._printer.commands(["$I", "$G"])
+        _plugin.RTCM = False
         # _plugin._printer.fake_ack()
 
     # Disconnecting & Disconnected
@@ -294,7 +295,7 @@ def on_event(_plugin, event, payload):
         _plugin.queue_B = _plugin.grblB
         _plugin.queue_S = 0.0
         _plugin.queue_F = 0.0
-        _plugin.bypass_queuing = False
+        _plugin.RTCM = False
         return
 
     # 'PrintStarted'
@@ -351,7 +352,7 @@ def on_event(_plugin, event, payload):
         _plugin.queue_Z = _plugin.grblZ
         _plugin.queue_A = _plugin.grblA
         _plugin.queue_B = _plugin.grblB
-        _plugin.bypass_queuing = False
+        _plugin.RTCM = False
         _plugin._printer.fake_ack()
         return
 

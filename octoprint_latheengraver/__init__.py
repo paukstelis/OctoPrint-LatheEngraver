@@ -114,6 +114,9 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.match_f = re.compile(r".*[Ff]\ *(-?[\d.]+).*")
         self.match_s = re.compile(r".*[Ss]\ *(-?[\d.]+).*")
 
+        #default state will be to bypass RTCM
+        self.RTCM = False
+        #self.bypass_queuing = False
         self.do_bangle = False
         self.do_mod_a = False
         self.do_mod_z = False
@@ -138,8 +141,6 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.queued_command = ""
         self.TERMINATE = False
         self.job_on_hold = False
-
-        self.bypass_queuing = False
 
         self.relative = False
         self.tooldistance = 135.0
@@ -744,7 +745,10 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             cmd = None, 
             return cmd
         
-        if self.ascan or self.xscan or self.bypass_queuing or not self._printer.is_printing():
+        if self.ascan or self.xscan or not self._printer.is_printing():
+            return cmd
+        
+        if not self.RTCM:
             return cmd
         
         assembly = {"X": None, "Z": None, "A": None, "B": None, "F": None, "S": None}
@@ -1090,6 +1094,8 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             return (cmd, )
         if cmd.upper() == "DOBANGLE":
             self.do_bangle = True
+            #turn on RTCM as well
+            self.RTCM = True
             self.bangle = self.grblB
             self._logger.info('do_bangle is: {0} and bangle is: {1}'.format(self.do_bangle, self.bangle))
             #set B to current position to make sure motor is engaged
@@ -1098,6 +1104,8 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         
         if cmd.upper() == "STOPBANGLE":
             self.do_bangle = False
+            #turn off RTCM LOOK AT THIS AGAIN IF WANT THIS HERE
+            self.RTCM = False
             self._logger.info('B angle matrix transformation off')
             return (None, )
         
@@ -1107,15 +1115,17 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         
         if cmd.upper() == "DOMODA":
             self.do_mod_a = True
-            self._logger.info('Mod A active')
+            self.RTCM = True
+            self._logger.info('Depth modification enabled')
             return (None, )
         
         if cmd.upper() == "STOPMODA":
             self.do_mod_a = False
-            self._logger.info('Mod A inactive')
+            self._logger.info('Depth modification inactive')
             return (None, )
         if cmd.upper() == "DOARCMOD":
             self.do_mod_z = True
+            self.RTCM = True
             return (None, )
         if cmd.upper() == "STOPARCMOD":
             self.do_mod_z = False
@@ -1177,8 +1187,12 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             self.ascan = False
             return (None, )
         
-        if cmd.upper() == "BYPASS":
-            self.bypass_queuing = True
+        if cmd.upper() == "RTCM":
+            self.RTCM = True
+            return (None, )
+        
+        if cmd.upper() == "STOPRTCM":
+            self.RTCM = False
             return (None, )
 
         # Grbl 1.1 Realtime Commands (requires Octoprint 1.8.0+)
