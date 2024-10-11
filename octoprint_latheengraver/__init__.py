@@ -740,6 +740,11 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
     #these need to be in queuing to extend
     def hook_gcode_queuing(self, comm_instance, phase, cmd, cmd_type, gcode, tags, *args, **kwargs):
         
+        if cmd.upper() == "RTCM":
+            self.RTCM = True
+            self._logger.info("Real-time coordinate modification activated")
+            return cmd
+        
         #if terminate has started, we aren't going to queue or send any more gcode, all commands are skipped
         if self.TERMINATE and cmd.upper() != "M30":
             cmd = None, 
@@ -1104,8 +1109,6 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         
         if cmd.upper() == "STOPBANGLE":
             self.do_bangle = False
-            #turn off RTCM LOOK AT THIS AGAIN IF WANT THIS HERE
-            self.RTCM = False
             self._logger.info('B angle matrix transformation off')
             return (None, )
         
@@ -1189,10 +1192,12 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         
         if cmd.upper() == "RTCM":
             self.RTCM = True
+            self._logger.info("Real-time coordinate modification activated")
             return (None, )
         
         if cmd.upper() == "STOPRTCM":
             self.RTCM = False
+            self._logger.info("Real-time coordinate modification not activated")
             return (None, )
 
         # Grbl 1.1 Realtime Commands (requires Octoprint 1.8.0+)
