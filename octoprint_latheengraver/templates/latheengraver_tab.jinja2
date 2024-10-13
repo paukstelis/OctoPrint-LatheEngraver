@@ -302,6 +302,12 @@
             <i class="icon icon-info-sign" title="Run will end after Z value reaches this depth." data-toggle="tooltip"></i>
             </label>       
          </div>
+         <div>
+            <label for="ignore_moda">Ignore Z-depth mod:
+               <input id="ignore_moda" type="checkbox" checked data-bind="checked: ignore_moda">
+               <i class="icon icon-info-sign" title="Ignore commands that force deeper plunges at the center of a cut job." data-toggle="tooltip"></i>
+            </label>
+         </div>
          <br>
          <div>
             <label for="zdepth">Enable pause at Z depth:
@@ -322,8 +328,8 @@
             </label>
          </div>
          <div>
-            <label for="template">Enable ovality correction:
-               <input id="template" type="checkbox" checked data-bind="checked: ovality">
+            <label for="oval">Enable ovality correction:
+               <input id="oval" type="checkbox" checked data-bind="checked: ovality">
                <i class="icon icon-info-sign" title="Corrects depth-of-cut based on A-axis angles. Requires A-axis probing or zone data with established zero position." data-toggle="tooltip"></i>
             </label>
          </div>

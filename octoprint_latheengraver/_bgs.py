@@ -346,6 +346,7 @@ def on_event(_plugin, event, payload):
         _plugin.track_plunge = False
         _plugin.minZ = 0.0
         _plugin.minZ_th = 0.0
+        _plugin.ignore_moda = False
         _plugin.pauses_started = False
         _plugin.minZ_inc = 0.0
         _plugin.queue_X = _plugin.grblX

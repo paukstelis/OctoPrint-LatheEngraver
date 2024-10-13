@@ -137,6 +137,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.minZ_th = float(0.0)
         self.minZ_inc = float(0)
         self.track_plunge = False
+        self.ignore_moda = False
         self.pauses_started = False
         self.queued_command = ""
         self.TERMINATE = False
@@ -785,11 +786,13 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             newcmd = newcmd + "{0}".format(c)
             #assembly["COMM"] = "{0} ".format(c)
         self._logger.debug("new command is: {}".format(newcmd))
+        self._logger.debug(f"Template: {self.template}, Depth: {self.cut_depth}, queue_z: {self.queue_Z}")
         #single axis match things first
         if match_z:
             self.queue_Z = float(match_z.groups(1)[0])
+            
             #template must be checked, cut_depth must be non-zero and the value must be less than cut_depth to start termination
-            if self.template and self.cut_depth and self.queue_Z < self.cut_depth:
+            if self.template and (self.cut_depth < 0) and (self.queue_Z < self.cut_depth):
                 self.start_termination()
                 cmd = (None, )
                 return cmd
@@ -1114,9 +1117,13 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         
         if cmd.upper() == "TERMINATE":
             self.TERMINATE = True
+            self._logger.info("Termination initiated")
             return (None, )
         
         if cmd.upper() == "DOMODA":
+            if self.ignore_moda:
+                self.do_mod_a = False
+                return (None, )
             self.do_mod_a = True
             self.RTCM = True
             self._logger.info('Depth modification enabled')
@@ -1952,6 +1959,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             self.minZ_th = float(data["minZ_th"])
             self.minZ_inc = float(data["minZ_inc"])
             self.do_ovality = bool(data["ovality"])
+            self.ignore_moda = bool(data["ignore_moda"])
             #allow either positive or negative
             if self.cut_depth > 0:
                 self.cut_depth = self.cut_depth * -1
@@ -1962,8 +1970,20 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             return
         
         if command == "laserrun":
+            self.template = bool(data["template"])
+            self.cut_depth = float(data["cut_depth"])
+            self.track_plunge = bool(data["track_plunge"])
+            self.minZ_th = float(data["minZ_th"])
+            self.minZ_inc = float(data["minZ_inc"])
+            self.do_ovality = bool(data["ovality"])
+            #allow either positive or negative
+            if self.cut_depth > 0:
+                self.cut_depth = self.cut_depth * -1
+            if self.minZ_th > 0:
+                self.minZ_th = self.minZ_th * -1
+            if self.minZ_inc < 0:
+                self.minZ_inc = self.minZ_inc * -1
             return
-
 
     def on_wizard_finish(self, handled):
         self._logger.debug("__init__: on_wizard_finish handled=[{}]".format(handled))
