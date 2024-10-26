@@ -909,7 +909,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         if calc_Y < 0:
             new_A = new_A*-1
         local_distance = distance - radius - zval
-        #self._logger.info("Calc. Y: {0}, Distance: {1}, To Origin: {2}, Degrees: {3}, Zval: {4}".format(calc_Y, distance, to_origin, math.degrees(new_A), zval))
+        self._logger.debug("Calc. Y: {0}, Distance: {1}, To Origin: {2}, Degrees: {3}, Zval: {4}".format(calc_Y, distance, to_origin, math.degrees(new_A), zval))
         return math.degrees(new_A), local_distance
 
     def get_a_profile(self, profile):
