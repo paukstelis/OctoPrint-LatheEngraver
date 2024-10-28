@@ -321,9 +321,9 @@ def on_event(_plugin, event, payload):
             _plugin.get_a_profile(path)
         
         #these should never be on in lasermode
-        if is_laser_mode(_plugin):
-            _plugin.template = False
-            _plugin.track_plugine =False
+        #if is_laser_mode(_plugin):
+        #    _plugin.template = False
+        #    _plugin.track_plunge =False
         
         if _plugin.autoCooldown:
             activate_auto_cooldown(_plugin)
