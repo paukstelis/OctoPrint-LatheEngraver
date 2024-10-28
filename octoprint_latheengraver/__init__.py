@@ -704,7 +704,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
 
     def parse_probe(self, line):
         #[PRB:-1.000,0.000,-10.705,0.000,0.000:1]
-        match = re.search(".*:([-]*\d*\.*\d*),\d\.000,([-]*\d*\.*\d*),([-]*\d*\.*\d*).*", line)
+        match = re.search(r".*:([-]*\d*\.*\d*),\d\.000,([-]*\d*\.*\d*),([-]*\d*\.*\d*).*", line)
         self._logger.debug("Parse probe data")
         self._logger.debug(line)
         matchstr = ''
