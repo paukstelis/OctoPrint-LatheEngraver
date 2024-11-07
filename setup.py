@@ -16,6 +16,7 @@ plugin_name = "LatheEngraver Support"
 # The plugin's version. Can be overwritten within OctoPrint's internal data via __plugin_version__ in the plugin module
 plugin_version = "1.0.19"
 
+
 # The plugin's description. Can be overwritten within OctoPrint's internal data via __plugin_description__ in the plugin
 # module
 plugin_description = """Extends Octoprint to support LatheEngraver bolt-on CNC. Based on S. Shrader Better Grbl Support"""
