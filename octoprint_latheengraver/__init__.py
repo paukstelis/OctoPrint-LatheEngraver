@@ -1463,7 +1463,10 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                                                                                 speed=self.grblSpeed,
                                                                                 power=self.grblPowerLevel,
                                                                                 positioning=self.positioning,
-                                                                                coolant=self.coolant))
+                                                                                feedmod=self.feedRate,
+                                                                                rtcm=self.RTCM,
+                                                                                depthlimit=self.cut_depth
+                                                                                ))
                 self.timeRef = currentTime
                 # Send to gcode_ripper as well
                 self._plugin_manager.send_plugin_message("gcode_ripper", dict(type="grbl_state",z=self.grblZ))

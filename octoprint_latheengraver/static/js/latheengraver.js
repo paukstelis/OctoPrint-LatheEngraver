@@ -65,7 +65,9 @@ $(function() {
         self.speed = ko.observable("N/A");
         self.pins = ko.observable("N/A")
         self.positioning = ko.observable("N/A");
-        self.coolant = ko.observable("N/A");
+        self.rtcm = ko.observable("N/A");
+        self.feedmod = ko.observable("N/A");
+        self.depthlimit = ko.observable("N/A");
 
         self.feedRate = ko.observable(undefined);
         self.plungeRate = ko.observable(undefined);
@@ -601,15 +603,9 @@ $(function() {
                 }
 
                 if (data.coord != undefined) self.coordinate_system(data.coord);
-
-                if (data.coolant != undefined) {
-                  if (data.coolant == "M7" || data.coolant == "M8") {
-                    self.coolant("On");
-                  } else {
-                    self.coolant("Off");
-                  }
-                }
-
+                if (data.feedmod != undefined) self.feedmod(data.feedmod);
+                if (data.rtcm != undefined) self.rtcm(data.rtcm);
+                if (data.depthlimit != undefined) self.depthlimit(data.depthlimit); 
                 if (data.positioning != undefined) {
                   if (data.positioning == 0) {
                     self.positioning("Absolute");
