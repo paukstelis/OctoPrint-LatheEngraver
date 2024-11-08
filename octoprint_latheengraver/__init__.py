@@ -1970,6 +1970,12 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 self.minZ_th = self.minZ_th * -1
             if self.minZ_inc < 0:
                 self.minZ_inc = self.minZ_inc * -1
+            self.queue_X = self.grblX
+            self.queue_Z = self.grblZ
+            self.queue_A = self.grblA
+            self.queue_B = self.grblB
+            self.queue_S = 0.0
+            self.queue_F = 0.0
             return
         
         if command == "laserrun":
@@ -1986,6 +1992,12 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 self.minZ_th = self.minZ_th * -1
             if self.minZ_inc < 0:
                 self.minZ_inc = self.minZ_inc * -1
+            self.queue_X = self.grblX
+            self.queue_Z = self.grblZ
+            self.queue_A = self.grblA
+            self.queue_B = self.grblB
+            self.queue_S = 0.0
+            self.queue_F = 0.0
             return
 
     def on_wizard_finish(self, handled):
