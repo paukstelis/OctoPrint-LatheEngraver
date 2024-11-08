@@ -289,13 +289,7 @@ def on_event(_plugin, event, payload):
         # threading.Thread(target=send_command_now, args=(_plugin._printer, _plugin._logger, "?")).start()
         _plugin._printer.commands("?", force=True)
         # reset our rate/position overrides
-        _plugin.queue_X = _plugin.grblX
-        _plugin.queue_Z = _plugin.grblZ
-        _plugin.queue_A = _plugin.grblA
-        _plugin.queue_B = _plugin.grblB
-        _plugin.queue_S = 0.0
-        _plugin.queue_F = 0.0
-        _plugin.RTCM = False
+        # DO NOT INCLUDE CRITICAL THINGS HERE.THIS EVENT WILL OCCUR AFTER COMMANDS ARE ALREADY SENT
         return
 
     # 'PrintStarted'
