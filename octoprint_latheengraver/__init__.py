@@ -1970,6 +1970,9 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 self.minZ_th = self.minZ_th * -1
             if self.minZ_inc < 0:
                 self.minZ_inc = self.minZ_inc * -1
+            if not self.template:
+                self.cut_depth = "N/A"
+
             self.queue_X = self.grblX
             self.queue_Z = self.grblZ
             self.queue_A = self.grblA
@@ -1992,6 +1995,8 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 self.minZ_th = self.minZ_th * -1
             if self.minZ_inc < 0:
                 self.minZ_inc = self.minZ_inc * -1
+            if not self.template:
+                self.cut_depth = "N/A"
             self.queue_X = self.grblX
             self.queue_Z = self.grblZ
             self.queue_A = self.grblA
