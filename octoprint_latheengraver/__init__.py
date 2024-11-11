@@ -1186,17 +1186,6 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 self._logger.info('Diameter set: {0}'.format(self.DIAM))
             return (None, )
         
-        if cmd.upper() == "SCANDONE":
-            self.xscan = False
-            #do Blender call here, should probably have a setting available to check if blender is present?
-            os.system("blender -b -P {0}/{1} -- {2} {3} {2}".format(self.datafolder, "blender_probe_stl.py",\
-                                                                    os.path.join(self.datafolder, self.datafile),\
-                                                                    self.zProbeDiam))                                                                    
-            return (None, )
-        if cmd.upper() == "ASCANDONE":
-            self.ascan = False
-            return (None, )
-        
         if cmd.upper() == "RTCM":
             self.RTCM = True
             self._logger.info("Real-time coordinate modification activated")
@@ -1545,7 +1534,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 
             else:
                 _bgs.add_notifications(self, [line])
-            return
+            return line
 
         # add to our lastResponse if this is not an acknowledgment
         if not "ok" in line.lower() and len(self.lastRequest) > 0:
