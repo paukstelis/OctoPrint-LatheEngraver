@@ -188,15 +188,6 @@ $(function() {
             self.pushGrblSettings(newValue);
           }
         });
-
-        self.isMultiPoint(self.settings.plugins.latheengraver.zprobeMethod() == "MULTI");
-        self.settings.plugins.latheengraver.zprobeMethod.subscribe(function(newValue) {
-          if (newValue == "MULTI") {
-            self.isMultiPoint(true);
-          } else {
-            self.isMultiPoint(false);
-          }
-        });
       };
 
       self.pushGrblSettings = function(grblSettingsText) {
