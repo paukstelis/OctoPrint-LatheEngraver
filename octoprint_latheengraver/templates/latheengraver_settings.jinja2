@@ -35,9 +35,6 @@
 						<input type="checkbox" data-bind="checked: settings.plugins.latheengraver.reOrderTabs"> Grbl Control is always first tab *
 				</label>
 					<label class="checkbox">
-						<input type="checkbox" data-bind="checked: settings.plugins.latheengraver.reOrderSidebar"> Material Framing is always at top of sidebar *
-					</label>
-					<label class="checkbox">
 						<input type="checkbox" data-bind="checked: settings.plugins.latheengraver.hideTempTab"> Hide the Octoprint Temperature tab *
 					</label>
 					<label class="checkbox">
@@ -47,114 +44,6 @@
 						<input type="checkbox" data-bind="checked: settings.plugins.latheengraver.hideControlTab"> Hide the Octoprint Control tab *
 					</label>
 			</div>
-
-			<h5><b>Probing</b></h5>
-
-			<div class="controls">
-				<label class="checkbox">
-					<input type="checkbox" data-bind="checked: settings.plugins.latheengraver.zProbeConfirmActions"> Confirm all Probe actions
-				</label>
-			</div>
-
-			<br>
-
-			<label class="control-label">Z-Probe Method</label>
-	    <div class="controls">
-	        <select data-bind="value: settings.plugins.latheengraver.zprobeMethod">
-	            <option value="SIMPLE">Single point Z-Probe</option>
-	            <option value="MULTI">Multi point Z-Probe</option>
-				<option value="XSCAN">X axis probing scan</option>
-				<option value="ASCAN">A axis ovality scan</options>
-	        </select>
-	    </div>
-
-			<br>
-
-	<!-- ko if: isMultiPoint() -->
-			<label class="control-label">Multipoint Calculation</label>
-	    <div class="controls">
-	        <select data-bind="value: settings.plugins.latheengraver.zprobeCalc">
-							<option value="MIN">Highest</option>
-							<option value="MAX">Lowest</option>
-							<option value="MEAN">Mean distance</option>
-							<option value="AVG">Average distance</option>
-	        </select>
-	    </div>
-
-			<br>
-	<!-- /ko -->
-
-			<label class="control-label">Touchplate Height (Z)</label>
-			<div class="controls">
-					<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.latheengraver.zProbeOffset, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm
-			</div>
-
-			<br>
-
-			<label class="control-label">Z Probe Distance</label>
-			<div class="controls">
-					<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.latheengraver.zProbeTravel, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm (0 = use machine Z limit)
-			</div>
-
-			<br>
-
-			<label class="control-label">Z Probe End Position</label>
-			<div class="controls">
-					<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.latheengraver.zProbeEndPos, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm
-			</div>
-
-			<br>
-
-			<label class="control-label">Touchplate Width (X)</label>
-			<div class="controls">
-					<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.latheengraver.xProbeOffset, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm (include your tool's radius)
-			</div>
-
-			<br>
-
-			<label class="control-label">Touchplate Length (Y)</label>
-			<div class="controls">
-					<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.latheengraver.yProbeOffset, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm (include your tool's radius)
-			</div>
-
-			<br>
-
-			<label class="control-label">X/Y Probe Distance</label>
-			<div class="controls">
-					<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.latheengraver.xyProbeTravel, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm
-			</div>
-
-			<br>
-
-			<label class="control-label">X Scan Length</label>
-			<div class="controls">
-					<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.latheengraver.zprobe_xlen, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm
-			</div>
-			<label class="control-label">Start Diameter</label>
-			<div class="controls">
-					<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.latheengraver.zprobe_diam, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm
-			</div>
-			<label class="control-label">X Scan Increments</label>
-			<div class="controls">
-					<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.latheengraver.zprobe_xinc, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm
-			</div>
-			<label class="control-label">X Scan Direction (1 or -1)</label>
-			<div class="controls">
-					<input type="text" class="input-mini" data-bind="value: settings.plugins.latheengraver.zprobe_xdir, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm
-			</div>
-			<label class="control-label">X Scan Z pulloff</label>
-			<div class="controls">
-					<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.latheengraver.zprobe_xzhop, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm
-			</div>
-
-			<label class="control-label">A Scan increments (degrees)</label>
-			<div class="controls">
-					<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.latheengraver.aprobe_inc, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm
-			</div>
-			<label class="control-label">A Scan Z pulloff</label>
-			<div class="controls">
-					<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.latheengraver.aprobe_hop, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm
-			</div>
 			<br>
 
 			<h5><b>Miscellaneous</b></h5>
@@ -162,12 +51,6 @@
 			<label class="control-label">Initial Jog Distance</label>
 			<div class="controls">
 					<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.latheengraver.distance, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm (0 = min of x/y limit)
-			</div>
-
-			<br>
-			<label class="control-label">Framing Feed Rate</label>
-			<div class="controls">
-					<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.latheengraver.framingPercentOfMaxSpeed, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">% of max
 			</div>
 
 			<br>
@@ -181,13 +64,13 @@
 
 			<div class="controls">
 				<label class="checkbox">
-						<input type="checkbox" data-bind="checked: settings.plugins.latheengraver.invertX"> Invert X Axis (jogging / framing / probing)
+						<input type="checkbox" data-bind="checked: settings.plugins.latheengraver.invertX"> Invert X Axis (jogging)
 				</label>
 				<label class="checkbox">
-						<input type="checkbox" data-bind="checked: settings.plugins.latheengraver.invertY"> Invert Y Axis (jogging / framing / probing)
+						<input type="checkbox" data-bind="checked: settings.plugins.latheengraver.invertY"> Invert Y Axis (jogging)
 				</label>
 				<label class="checkbox">
-						<input type="checkbox" data-bind="checked: settings.plugins.latheengraver.invertZ"> Invert Z Axis (jogging / probing)
+						<input type="checkbox" data-bind="checked: settings.plugins.latheengraver.invertZ"> Invert Z Axis (jogging)
 				</label>
 				<label class="checkbox">
 						<input type="checkbox" data-bind="checked: settings.plugins.latheengraver.hasA"> Has A Axis 
@@ -237,14 +120,6 @@
 
 		<div class="controls">
 			<label class="checkbox">
-				<input type="checkbox" data-bind="checked: settings.plugins.latheengraver.notifyFrameSize"> Notify when Job Framing size is computed
-			</label>
-		</div>
-
-		<br>
-
-		<div class="controls">
-			<label class="checkbox">
 				<input type="checkbox" data-bind="checked: settings.plugins.latheengraver.useDevChannel"> Subscribe to DEVEL branch for unstable updates (USE AT OWN RISK) *
 			</label>
 		</div>
@@ -252,27 +127,7 @@
 		<br>
 		<h4>Grbl Options</h4>
 		<hr>
-	  <label class="control-label">Air Assist Overrides</label>
-		<br>
-		<div class="controls">
-			<label class="checkbox">
-				<input type="checkbox" data-bind="checked: settings.plugins.latheengraver.overrideM8"> Suppress M8 Command
-			</label>
-			<!-- ko if: settings.plugins.latheengraver.overrideM8 -->
-					<label>And Execute:</label>
-	        <input type="text" class="input-block-level" data-bind="value: settings.plugins.latheengraver.m8Command, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">
-					<br><br>
-			<!-- /ko -->
-			<label class="checkbox">
-				<input type="checkbox" data-bind="checked: settings.plugins.latheengraver.overrideM9"> Suppress M9 Command
-			</label>
-			<!-- ko if: settings.plugins.latheengraver.overrideM9 -->
-					<label>And Execute:</label>
-	        <input type="text" class="input-block-level" data-bind="value: settings.plugins.latheengraver.m9Command, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">
-					<br><br>
-			<!-- /ko -->
-		</div>
-		<div><small><a href="#" class="muted" data-bind="toggleContent: { class: 'fa-caret-right fa-caret-down' }, click: function() { toggleAdvanced() }"><i class="fas fa-caret-right"></i>Advanced options</a> (change at your own risk)</small></div>
+	  	<div><small><a href="#" class="muted" data-bind="toggleContent: { class: 'fa-caret-right fa-caret-down' }, click: function() { toggleAdvanced() }"><i class="fas fa-caret-right"></i>Advanced options</a> (change at your own risk)</small></div>
 
 		<div id="settings_grbl_options" style="display: none">
 			<br>

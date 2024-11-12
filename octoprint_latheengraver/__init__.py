@@ -78,7 +78,6 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.reOrderSidebar = True
         self.disablePrinterSafety = True
         self.weakLaserValue = float(1)
-        self.framingPercentOfMaxSpeed = float(25)
 
         self.lastGCommand = ""
 
@@ -130,9 +129,8 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.arcadd = float(1)
 
         self.do_ovality = False
-        self.ascan_file = "ascan.txt"
         self.template = False
-        self.cut_depth = float(0.0)
+        self.cut_depth = float(25)
         self.minZ = float(0)
         self.minZ_th = float(0.0)
         self.minZ_inc = float(0)
@@ -161,10 +159,6 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
 
         self.grblVersion = "unknown"
 
-        self.zProbeOffset = float(15.00)
-        self.zProbeTravel = float(0.00)
-        self.zProbeEndPos = float(5.00)
-
         self.feedRate = float(0)
         self.plungeRate = float(0)
         self.powerRate = float(0)
@@ -177,8 +171,6 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.autoCooldown = False
         self.autoCooldownFrequency = 60
         self.autoCooldownDuration = 15
-
-        self.notifyFrameSize = True
 
         self.invertX = 1
         self.invertY = 1
@@ -236,10 +228,6 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.handshakeSent = False
 
         self.octoprintVersion = octoprint.server.VERSION
-        self.datafolder = ''
-        self.datafile = 'bowlscan.txt'
-        self.xscan = False
-        self.ascan = False
         self.a_profile = []
 
         # load up our item/value pairs for errors, warnings, and settings
@@ -263,9 +251,6 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             suppressM115 = True,
             suppressM110 = True,
             disablePolling = True,
-            frame_length = 100,
-            frame_width = 100,
-            frame_origin = None,
             distance = float(1),
             control_distance = float(0),
             is_printing = False,
@@ -277,14 +262,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             disablePrinterSafety = True,
             grblSettingsText = None,
             grblSettingsBackup = "",
-            zProbeOffset = float(15.00),
-            xProbeOffset = float(3),
-            yProbeOffset = float(3),
-            zProbeTravel = float(0.00),
-            xyProbeTravel = float(30),
-            zProbeEndPos = float(5.00),
             weakLaserValue = float(1),
-            framingPercentOfMaxSpeed = float(25),
             overrideM8 = False,
             overrideM9 = False,
             m8Command = "",
@@ -295,24 +273,15 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             laserMode = False,
             old_profile = "_default",
             useDevChannel = False,
-            zprobeMethod = "SIMPLE",
-            zprobeCalc = "MIN",
-            zprobe_xdir = -1,
-            zprobe_xlen = 90,
-            zprobe_xzhop = 10,
-            zprobe_xinc = 1,
-            zprobe_diam = 100,
             autoSleep = False,
             autoSleepInterval = 20,
             autoCooldown = False,
             autoCooldownFrequency = 60,
             autoCooldownDuration = 15,
-            zProbeConfirmActions = True,
             wizard_version = 1,
             invertX = False,
             invertY = False,
             invertZ = False,
-            notifyFrameSize = True,
             bgsFilters = self.bgs_filters,
             activeFilters = [],
             fluidYaml = None,
@@ -380,17 +349,9 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.doSmoothie = self._settings.get(["doSmoothie"])
 
         self.weakLaserValue = float(self._settings.get(["weakLaserValue"]))
-        self.framingPercentOfMaxSpeed = float(self._settings.get(["framingPercentOfMaxSpeed"]))
 
         self.grblSettingsText = self._settings.get(["grblSettingsText"])
         self.grblVersion = self._settings.get(["grblVersion"])
-
-        self.zProbeOffset = float(self._settings.get(["zProbeOffset"]))
-        self.zProbeTravel = float(self._settings.get(["zProbeTravel"]))
-        self.zProbeEndPos = float(self._settings.get(["zProbeEndPos"]))
-        self.zProbeXDir = int(self._settings.get(["zprobe_xdir"]))
-        self.zProbeXLen = int(self._settings.get(["zprobe_xlen"]))
-        self.zProbeDiam = int(self._settings.get(["zprobe_diam"]))
 
         self._settings.global_set_boolean(["feature", "modelSizeDetection"], not self.disableModelSizeDetection)
         self._settings.global_set_boolean(["feature", "sdSupport"], False)
@@ -406,8 +367,6 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.invertX = -1 if self._settings.get_boolean(["invertX"]) else 1
         self.invertY = -1 if self._settings.get_boolean(["invertY"]) else 1
         self.invertZ = -1 if self._settings.get_boolean(["invertZ"]) else 1
-
-        self.notifyFrameSize = self._settings.get_boolean(["notifyFrameSize"])
 
         self._logger.debug("axis inversion X=[{}] Y=[{}] Z=[{}]".format(self.invertX, self.invertY, self.invertZ))
 
@@ -591,10 +550,6 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self._logger.debug("saving settings")
         octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
 
-        # let's bail if our only changes are frame dimensions or activeFilters
-        if "frame_width" in data or "frame_length" in data or "frame_origin" in data or "activeFilters" in data:
-            return
-
         # pause status requests
         self.noStatusRequests = True
 
@@ -657,10 +612,10 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
 
         # Define your plugin's asset files to automatically include in the
         # core UI here.
-        return dict(js=['js/latheengraver.js', 'js/latheengraver_settings.js', 'js/bgs_framing.js', 
+        return dict(js=['js/latheengraver.js', 'js/latheengraver_settings.js', 
                         'js/latheengraver_wizard.js', 'js/bgs_terminal.js'],
-                    css=['css/latheengraver.css', 'css/latheengraver_settings.css', 'css/bgs_framing.css'],
-                    less=['less/latheengraver.less', "less/latheengraver.less", "less/bgs_framing.less"])
+                    css=['css/latheengraver.css', 'css/latheengraver_settings.css'],
+                    less=['less/latheengraver.less', "less/latheengraver.less"])
 
 
     # #~~ TemplatePlugin mixin
@@ -702,28 +657,6 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 )
         )
 
-    def parse_probe(self, line):
-        #[PRB:-1.000,0.000,-10.705,0.000,0.000:1]
-        match = re.search(r".*:([-]*\d*\.*\d*),\d\.000,([-]*\d*\.*\d*),([-]*\d*\.*\d*).*", line)
-        self._logger.debug("Parse probe data")
-        self._logger.debug(line)
-        matchstr = ''
-        if match and self.xscan:
-            matchstr = "{0},{1}".format(match.groups(1)[0],match.groups(1)[1])
-            matchstr += "\n"
-            return matchstr
-        if match and self.ascan:
-            matchstr = "{0},{1}".format(match.groups(1)[1],match.groups(1)[2])
-            matchstr += "\n"
-            return matchstr
-
-    def write_datafile(self, data):
-        path = os.path.join(self.datafolder, self.datafile)
-        with open(path, "a") as settings_file:
-            settings_file.write(data)
-        settings_file.close()
-        self._logger.debug("wrote data file")
-
     def hook_script_onresume(self, comm, script_type, script_name, *args, **kwargs):
         self._logger.info(script_type, script_name)
         if not script_type == "gcode" or not script_name == "beforePrintResumed":
@@ -749,9 +682,6 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         #if terminate has started, we aren't going to queue or send any more gcode, all commands are skipped
         if self.TERMINATE and cmd.upper() != "M30":
             cmd = None, 
-            return cmd
-        
-        if self.ascan or self.xscan or not self._printer.is_printing():
             return cmd
         
         if not self.RTCM:
@@ -1002,7 +932,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
 
         # suppress temperature if machine is printing
         if "M105" in cmd.upper() or cmd.startswith(self.statusCommand):
-            if (self.disablePolling and self._printer.is_printing()) or len(self.lastRequest) > 0 or self.noStatusRequests or self.xscan or self.ascan:
+            if (self.disablePolling and self._printer.is_printing()) or len(self.lastRequest) > 0 or self.noStatusRequests:
                 self._logger.debug('Ignoring %s', cmd)
                 return (None, )
             else:
@@ -1020,11 +950,6 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                     return (self.statusCommand, )
 
         self.autoSleepTimer = time.time()
-
-        # forward on BGS_MULTIPOINT_ZPROBE_MOVE events to _bgs
-        if "BGS_MULTIPOINT_ZPROBE_MOVE" in cmd:
-            _bgs.multipoint_zprobe_move(self)
-            return (None, )
 
         # hack for unacknowledged grbl commmands
         if "$H" in cmd.upper() or "G38.2" in cmd.upper():
@@ -1500,6 +1425,9 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             # it all starts here
             return "ok " + line
 
+        if "PRB:" in line.upper():
+            return line
+         
         # forward any messages to the action notification plugin
         if "MSG:" in line.upper():
             ignoreList = ("[MSG:'$H'|'$X' to unlock]", "[MSG:INFO: '$H'|'$X' to unlock]")
@@ -1519,22 +1447,6 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                     if len(line) > 0:
                         _bgs.add_notifications(self, [line])
             return 
-
-        # add a notification if we just z-probed
-        # _bgs will pick this up if zProbe is active
-        if "PRB:" in line.upper():
-            if self._settings.get(["zprobeMethod"]) == "XSCAN" and self.xscan:
-                self._logger.debug("Got xscan")
-                #parse x and z and append them to a file
-                data = self.parse_probe(line)
-                self.write_datafile(data)
-            if self._settings.get(["zprobeMethod"]) == "ASCAN" and self.ascan:
-                data = self.parse_probe(line)
-                self.write_datafile(data)
-                
-            else:
-                _bgs.add_notifications(self, [line])
-            return line
 
         # add to our lastResponse if this is not an acknowledgment
         if not "ok" in line.lower() and len(self.lastRequest) > 0:
@@ -1635,14 +1547,10 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             unlock=[],
             homing=[],
             toggleWeak=[],
-            babydown=[],
-            babyup=[],
-            cancelProbe=[],
             getNotifications=[],
             clearNotifications=[],
             backupGrblSettings=[],
             restoreGrblSettings=[],
-            frame=["length", "width"],
             origin=["origin_axis"],
             move=["sessionId", "direction", "distance", "axis"],
             updateGrblSetting=["id", "value"],
@@ -1666,10 +1574,6 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             extra_axes = extra_axes+"A0 "
         if hasB:
             extra_axes = extra_axes+"B0"
-
-        if command == "cancelProbe":
-            _bgs.grbl_alarm_or_error_occurred(self)
-            return
 
         if command == "sleep":
             self._printer.commands("$SLP")
@@ -1778,20 +1682,6 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             self._logger.debug("ignoring move related command - printer is not available")
             return
 
-        if command == "frame":
-            length = float(data.get("length"))
-            width = float(data.get("width"))
-
-            # check distance against limits
-            if abs(length) > abs(yl):
-                return flask.abort(403, "Distance exceeds Y axis limit")
-            if abs(width) > abs(xl):
-                return flask.abort(400, "Distance exceeds X axis limit")
-                    
-            _bgs.do_framing(self, data)
-            self._logger.debug("frame submitted l=[{}] w=[{}] o=[{}]".format(data.get("length"), data.get("width"), data.get("origin")))
-            return
-
         if command == "move":
             sessionId = data.get("sessionId")
             # do move stuff
@@ -1824,35 +1714,6 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
 
                 # add a notification if we just homed
                 _bgs.add_notifications(self, ["Moved to coordinate system {} home for {}".format(program, axis)])
-                return
-
-            if direction == "probe":
-                if axis in ("XY", "X", "Y"):
-                    _bgs.do_xy_probe(self, axis, sessionId)
-                elif axis == "Z":
-                    method = self._settings.get(["zprobeMethod"])
-                    if method == "SIMPLE":
-                        _bgs.do_simple_zprobe(self, sessionId)
-                    if method =="MULTIPOINT":
-                        _bgs.do_multipoint_zprobe(self, sessionId)
-                    if method == "ASCAN":
-                        self.datafile = time.strftime("%Y%m%d-%H%M%S") + "_a-axis_scan.txt"
-                        _bgs.do_ascan_probe(self, sessionId)
-                        self.ascan = True
-                        data = ";begin A-axis scan\n"
-                        self.write_datafile(data)
-                    if method == "XSCAN":
-                        self.datafile = time.strftime("%Y%m%d-%H%M%S") + "_bowlscan.txt"
-                        _bgs.do_xscan_zprobe(self, sessionId)
-                        self.xscan = True
-                        diam = self._settings.get(["zprobe_diam"])
-                        xlen = self._settings.get(["zprobe_xlen"])
-                        xdir = self._settings.get(["zprobe_xdir"])
-                        xinc = self._settings.get(["zprobe_xinc"])
-                        data = ";diam={0}, xlen={1}, xdir={2}, xinc={3}\n".format(diam, xlen, xdir, xinc)
-                        self.write_datafile(data)
-                elif axis == "ALL":
-                    _bgs.do_xyz_probe(self, sessionId)
                 return
 
             # check distance against limits
@@ -1961,7 +1822,11 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 self.minZ_inc = self.minZ_inc * -1
             if not self.template:
                 self.cut_depth = "N/A"
-
+            self.do_bangle = False
+            self.TERMINATE = False
+            self.queued_command = ""
+            self.pauses_started = False
+            self.RTCM = False
             self.queue_X = self.grblX
             self.queue_Z = self.grblZ
             self.queue_A = self.grblA
@@ -1986,6 +1851,11 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 self.minZ_inc = self.minZ_inc * -1
             if not self.template:
                 self.cut_depth = "N/A"
+            self.do_bangle = False
+            self.TERMINATE = False
+            self.queued_command = ""
+            self.pauses_started = False
+            self.RTCM = False
             self.queue_X = self.grblX
             self.queue_Z = self.grblZ
             self.queue_A = self.grblA
