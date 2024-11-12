@@ -305,10 +305,6 @@ def on_event(_plugin, event, payload):
         _plugin.is_printing = True
         _plugin._settings.set_boolean(["is_printing"], _plugin.is_printing)
 
-        if _plugin.do_ovality:
-            path = os.path.join(_plugin.datafolder, _plugin.ascan_file)
-            _plugin.get_a_profile(path)
-        
         #these should never be on in lasermode
         #if is_laser_mode(_plugin):
         #    _plugin.template = False
@@ -322,28 +318,15 @@ def on_event(_plugin, event, payload):
 
     # Print ended (finished / failed / cancelled)
     if event in (Events.PRINT_CANCELLED, Events.PRINT_DONE, Events.PRINT_FAILED):
+        # DO NOT INCLUDE CRITICAL THINGS HERE.THIS EVENT WILL OCCUR AFTER COMMANDS ARE ALREADY SENT
         _plugin.grblState = "Idle"
         _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_state", state="Idle"))
         _plugin.feedRate = 0.0
         _plugin.is_printing = False
         _plugin._settings.set_boolean(["is_printing"], _plugin.is_printing)
-        _plugin.do_bangle = False
-        _plugin.template = False
         _plugin.TERMINATE = False
-        _plugin.cut_depth = 0.0
-        _plugin.queued_command = ""
-        _plugin.track_plunge = False
-        _plugin.minZ = 0.0
-        _plugin.minZ_th = 0.0
-        _plugin.ignore_moda = False
-        _plugin.pauses_started = False
-        _plugin.minZ_inc = 0.0
-        _plugin.queue_X = _plugin.grblX
-        _plugin.queue_Z = _plugin.grblZ
-        _plugin.queue_A = _plugin.grblA
-        _plugin.queue_B = _plugin.grblB
-        _plugin.RTCM = False
         _plugin._printer.fake_ack()
+        _plugin._logger.debug('Made it through cancel, done failed')
         return
 
     # Print Cancelling
@@ -926,17 +909,17 @@ def is_laser_mode(_plugin):
 
 def is_grbl_one_dot_one(_plugin):
     oneDotOne = "VER:1." in _plugin.grblVersion and "VER:1.0" not in _plugin.grblVersion
-    _plugin._logger.debug("_bgs: is_grbl_one_dot_one result=[{}]".format(oneDotOne))
+    #_plugin._logger.debug("_bgs: is_grbl_one_dot_one result=[{}]".format(oneDotOne))
     return oneDotOne
 
 def is_grbl_esp32(_plugin):
     oneDotOne = "VER:1." in _plugin.grblVersion and "VER:1.0" not in _plugin.grblVersion and "VER:1.1" not in _plugin.grblVersion
-    _plugin._logger.debug("_bgs: is_grbl_esp32 result=[{}]".format(oneDotOne))
+    #_plugin._logger.debug("_bgs: is_grbl_esp32 result=[{}]".format(oneDotOne))
     return oneDotOne
 
 def is_grbl_fluidnc(_plugin):
     oneDotOne = " FLUIDNC " in _plugin.grblVersion.upper()
-    _plugin._logger.debug("_bgs: is_grbl_fluidnc result=[{}]".format(oneDotOne))
+    #_plugin._logger.debug("_bgs: is_grbl_fluidnc result=[{}]".format(oneDotOne))
     return oneDotOne
 
 def is_latin_encoding_available(_plugin):
@@ -1026,7 +1009,7 @@ def is_spindle(path):
 
         
 def get_axes_max_rates(_plugin):
-    _plugin._logger.debug("_bgs: get_axes_max_rates")
+    #_plugin._logger.debug("_bgs: get_axes_max_rates")
     
     # seed with defaults
     xf = 1000.0
@@ -1045,7 +1028,7 @@ def get_axes_max_rates(_plugin):
     except Exception as e:
         _plugin._logger.warn("_bgs: get_axes_max_rates: {}".format(e))
 
-    _plugin._logger.debug("_bgs: get_axes_max_rates x={} y={} z={}".format(xf, yf, zf))
+    #_plugin._logger.debug("_bgs: get_axes_max_rates x={} y={} z={}".format(xf, yf, zf))
     return xf, yf, zf
 
 

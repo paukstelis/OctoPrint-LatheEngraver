@@ -130,7 +130,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
 
         self.do_ovality = False
         self.template = False
-        self.cut_depth = float(0.0)
+        self.cut_depth = float(25)
         self.minZ = float(0)
         self.minZ_th = float(0.0)
         self.minZ_inc = float(0)
@@ -1822,7 +1822,11 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 self.minZ_inc = self.minZ_inc * -1
             if not self.template:
                 self.cut_depth = "N/A"
-
+            self.do_bangle = False
+            self.TERMINATE = False
+            self.queued_command = ""
+            self.pauses_started = False
+            self.RTCM = False
             self.queue_X = self.grblX
             self.queue_Z = self.grblZ
             self.queue_A = self.grblA
@@ -1847,6 +1851,11 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 self.minZ_inc = self.minZ_inc * -1
             if not self.template:
                 self.cut_depth = "N/A"
+            self.do_bangle = False
+            self.TERMINATE = False
+            self.queued_command = ""
+            self.pauses_started = False
+            self.RTCM = False
             self.queue_X = self.grblX
             self.queue_Z = self.grblZ
             self.queue_A = self.grblA
