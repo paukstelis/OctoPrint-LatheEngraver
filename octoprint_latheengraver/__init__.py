@@ -827,7 +827,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         cmd = newcmd
         for key, value in assembly.items():
             if value is not None:
-                cmd = cmd+" {0}{1:.4f}".format(str(key), value)
+                cmd = cmd+" {0}".format(str(key), value)
         return cmd
     
     def get_new_A(self, zval, aval):
