@@ -674,6 +674,10 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
     #these need to be in queuing to extend
     def hook_gcode_queuing(self, comm_instance, phase, cmd, cmd_type, gcode, tags, *args, **kwargs):
         
+        #only alter commands if we are running a job
+        if not self._printer.is_printing():
+             return cmd
+         
         if cmd.upper() == "RTCM":
             self.RTCM = True
             self._logger.info("Real-time coordinate modification activated")
@@ -810,9 +814,9 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                     trans_a, deltaZ = self.get_new_A(trans_z_init, self.queue_A)
                     trans_z = trans_z+deltaZ
             
-        assembly["X"] = trans_x
-        assembly["Z"] = trans_z
-        assembly["A"] = trans_a
+        assembly["X"] = f"{trans_x:.4f}"
+        assembly["Z"] = f"{trans_z:.4f}"
+        assembly["A"] = f"{trans_a:.4f}"
         assembly["B"] = self.queue_B
         self._logger.debug("assembly is: {}".format(assembly))
         self._logger.debug("original values: X{0} Z{1}".format(self.queue_X, self.queue_Z))
@@ -839,7 +843,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         if calc_Y < 0:
             new_A = new_A*-1
         local_distance = distance - radius - zval
-        self._logger.debug("Calc. Y: {0}, Distance: {1}, To Origin: {2}, Degrees: {3}, Zval: {4}".format(calc_Y, distance, to_origin, math.degrees(new_A), zval))
+        self._logger.debug("Calc. Y: {0:.2f}, Distance: {1:.2f}, To Origin: {2:.2f}, Degrees: {3:.2f}, Zval: {4:.2f}".format(calc_Y, distance, to_origin, math.degrees(new_A), zval))
         return math.degrees(new_A), local_distance
 
     def get_a_profile(self, profile):
