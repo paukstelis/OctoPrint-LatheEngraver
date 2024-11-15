@@ -814,9 +814,9 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                     trans_a, deltaZ = self.get_new_A(trans_z_init, self.queue_A)
                     trans_z = trans_z+deltaZ
             
-        assembly["X"] = f"{trans_x:.4f}"
-        assembly["Z"] = f"{trans_z:.4f}"
-        assembly["A"] = f"{trans_a:.4f}"
+        assembly["X"] = trans_x
+        assembly["Z"] = trans_z
+        assembly["A"] = trans_a
         assembly["B"] = self.queue_B
         self._logger.debug("assembly is: {}".format(assembly))
         self._logger.debug("original values: X{0} Z{1}".format(self.queue_X, self.queue_Z))
@@ -827,7 +827,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         cmd = newcmd
         for key, value in assembly.items():
             if value is not None:
-                cmd = cmd+" {0}".format(str(key), value)
+                cmd = cmd+" {0}{1:.4f}".format(str(key), value)
         return cmd
     
     def get_new_A(self, zval, aval):
