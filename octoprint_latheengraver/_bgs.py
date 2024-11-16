@@ -262,8 +262,6 @@ def on_event(_plugin, event, payload):
 
         _plugin.is_operational = True
         _plugin._settings.set_boolean(["is_operational"], _plugin.is_operational)
-
-        _plugin.fluidConfig = None
         _plugin._printer.commands(["$I", "$G"])
         _plugin.RTCM = False
         # _plugin._printer.fake_ack()
@@ -897,11 +895,8 @@ def wait_for_metadata_processing(_plugin, filename, notify):
 
 def is_laser_mode(_plugin):
     try:
-        if not is_grbl_fluidnc(_plugin):
-            _plugin._logger.debug("_bgs: is_laser_mode={}".format(int(float(_plugin.grblSettings.get(32)[0])) != 0))
-            return int(float(_plugin.grblSettings.get(32)[0])) != 0
-        else:
-            return not (_plugin.fluidYaml and _plugin.fluidYaml.get("laser") is None and _plugin.fluidYaml.get("Laser") is None and _plugin.fluidYaml.get("LASER") is None)
+        _plugin._logger.debug("_bgs: is_laser_mode={}".format(int(float(_plugin.grblSettings.get(32)[0])) != 0))
+        return int(float(_plugin.grblSettings.get(32)[0])) != 0
     except Exception as e:
         _plugin._logger.warn("_bgs: is_laser_mode: {}".format(e))
 
@@ -915,11 +910,6 @@ def is_grbl_one_dot_one(_plugin):
 def is_grbl_esp32(_plugin):
     oneDotOne = "VER:1." in _plugin.grblVersion and "VER:1.0" not in _plugin.grblVersion and "VER:1.1" not in _plugin.grblVersion
     #_plugin._logger.debug("_bgs: is_grbl_esp32 result=[{}]".format(oneDotOne))
-    return oneDotOne
-
-def is_grbl_fluidnc(_plugin):
-    oneDotOne = " FLUIDNC " in _plugin.grblVersion.upper()
-    #_plugin._logger.debug("_bgs: is_grbl_fluidnc result=[{}]".format(oneDotOne))
     return oneDotOne
 
 def is_latin_encoding_available(_plugin):
@@ -942,38 +932,6 @@ def send_command_now(printer, logger, cmd):
     except Exception as e:
         logger.error("_bgs: send_command_now: %s" % e)
 
-
-def defer_resuming_status_reports(_plugin, waitTime, showFinalize):
-    if showFinalize:
-        _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="simple_notify",
-                                                                title="Finalizing Changes. . .",
-                                                                    text="Please wait while FluidNC's configuration and settings are finalized.",
-                                                                    hide=True,
-                                                                delay=15000,
-                                                            notify_type="notice"))
-    time.sleep(waitTime)
-    _plugin.noStatusRequests = False
-
-
-def update_fluid_config(_plugin):
-    _plugin._logger.debug("_bgs: update_fluid_config")
-
-    configName = _plugin.fluidSettings.get("Config/Filename", "config.yaml")
-    _plugin._printer.commands("$LocalFS/Delete={}".format(configName))
-
-    for key, value in _plugin.fluidYaml.items():
-        process_fluid_config_item(_plugin, key, value)
-
-    queue_cmds_and_send(_plugin, ["$CD={}".format(configName)])
-    
-def process_fluid_config_item(_plugin, key, value, path=""):
-    if isinstance(value, dict):
-        path = "{}{}/".format(path, key)
-        for child_key, child_value in value.items():
-            process_fluid_config_item(_plugin, child_key, child_value, path)
-    else:
-        if not value is None and not "PIN" in key.upper() and not "MOTOR" in path.upper() and not is_spindle(path):
-            _plugin._printer.commands("$/{}{}={}".format(path, key, value.replace("null", "")))
 
 def is_spindle(path):
     if path.upper().startswith("10V/"):
@@ -1017,14 +975,9 @@ def get_axes_max_rates(_plugin):
     zf = 300.0
 
     try:
-        if is_grbl_fluidnc(_plugin):
-            xf = float(_plugin.fluidYaml.get("axes", {}).get("x", {}).get("max_rate_mm_per_min"))
-            yf = float(_plugin.fluidYaml.get("axes", {}).get("y", {}).get("max_rate_mm_per_min"))
-            zf = float(_plugin.fluidYaml.get("axes", {}).get("z", {}).get("max_rate_mm_per_min"))
-        else:
-            xf = float(_plugin.grblSettings.get(110)[0])
-            yf = float(_plugin.grblSettings.get(111)[0])
-            zf = float(_plugin.grblSettings.get(112)[0])
+        xf = float(_plugin.grblSettings.get(110)[0])
+        yf = float(_plugin.grblSettings.get(111)[0])
+        zf = float(_plugin.grblSettings.get(112)[0])
     except Exception as e:
         _plugin._logger.warn("_bgs: get_axes_max_rates: {}".format(e))
 
@@ -1043,14 +996,9 @@ def get_axes_limits(_plugin):
     distance = 1
 
     try:
-        if is_grbl_fluidnc(_plugin):
-            xl = float(_plugin.fluidYaml.get("axes", {}).get("x", {}).get("max_travel_mm"))
-            yl = float(_plugin.fluidYaml.get("axes", {}).get("y", {}).get("max_travel_mm"))
-            zl = float(_plugin.fluidYaml.get("axes", {}).get("z", {}).get("max_travel_mm"))
-        else:
-            xl = float(_plugin.grblSettings.get(130)[0])
-            yl = float(_plugin.grblSettings.get(131)[0])
-            zl = float(_plugin.grblSettings.get(132)[0])
+        xl = float(_plugin.grblSettings.get(130)[0])
+        yl = float(_plugin.grblSettings.get(131)[0])
+        zl = float(_plugin.grblSettings.get(132)[0])
 
         # assign our default distance if it is not already set to the lower of x,y limits
         distance = float(_plugin._settings.get(["distance"]))
