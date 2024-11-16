@@ -318,15 +318,20 @@ def on_event(_plugin, event, payload):
 
     # Print ended (finished / failed / cancelled)
     if event in (Events.PRINT_CANCELLED, Events.PRINT_DONE, Events.PRINT_FAILED):
-        # DO NOT INCLUDE CRITICAL THINGS HERE.THIS EVENT WILL OCCUR AFTER COMMANDS ARE ALREADY SENT
-        _plugin.grblState = "Idle"
-        _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_state", state="Idle"))
-        _plugin.feedRate = 0.0
-        _plugin.is_printing = False
-        _plugin._settings.set_boolean(["is_printing"], _plugin.is_printing)
-        _plugin.TERMINATE = False
-        _plugin._printer.fake_ack()
-        _plugin._logger.debug('Made it through cancel, done failed')
+        if _plugin.printer.is_printing():
+            _plugin._logger.debug('Hit Cancel, Done, Failed while still printing!!!!!!!!')
+        else:
+            # DO NOT INCLUDE CRITICAL THINGS HERE.THIS EVENT WILL OCCUR AFTER COMMANDS ARE ALREADY SENT
+            _plugin.grblState = "Idle"
+            _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_state", state="Idle"))
+            _plugin.feedRate = 0.0
+            _plugin.is_printing = False
+            _plugin._settings.set_boolean(["is_printing"], _plugin.is_printing)
+            _plugin.TERMINATE = False
+            _plugin.RTCM = False
+            _plugin.cut_depth = 423.0
+            _plugin._printer.fake_ack()
+            _plugin._logger.debug('Made it through cancel, done failed')
         return
 
     # Print Cancelling
