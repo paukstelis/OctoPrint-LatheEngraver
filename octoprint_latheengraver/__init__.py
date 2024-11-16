@@ -177,10 +177,6 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
 
         self.grblConfig = None
 
-        self.fluidSettings = None
-        self.fluidConfig = None
-        self.fluidYaml = None
-
         self.noStatusRequests = False
 
         self.bgs_filters = [
@@ -346,12 +342,6 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.invertZ = -1 if self._settings.get_boolean(["invertZ"]) else 1
 
         self._logger.debug("axis inversion X=[{}] Y=[{}] Z=[{}]".format(self.invertX, self.invertY, self.invertZ))
-
-        fluidYaml = self._settings.get(["fluidYaml"])
-        if not fluidYaml is None and len(fluidYaml) > 0:
-            self.fluidYaml = yaml.safe_load(fluidYaml)
-
-        self.fluidSettings = self._settings.get(["fluidSettings"])
 
         if self.neverSendChecksum:
             self._settings.global_set(["serial", "checksumRequiringCommands"], [])
@@ -533,54 +523,6 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         # reload our config
         self.on_after_startup()
 
-        if not self._printer.is_printing(): 
-            if "fluidYaml" in data or "fluidSettings" in data:
-                # save our fluid config
-                if "fluidYaml" in data:
-                    self.fluidConfig = data.get("fluidYaml")
-                    self.fluidYaml = yaml.safe_load(data.get("fluidYaml"))
-
-                    if self.fluidSettings.get("HTTP/Enable").upper() == "ON":
-                        try:
-                            url = "http://{}:{}/files".format(self.fluidSettings.get("Hostname"), self.fluidSettings.get("HTTP/Port"))
-                            params = {'action': 'delete', 'filename': self.fluidSettings.get("Config/Filename")}
-                            r = requests.get(url, params)
-                            r.close()
-
-                            # lets wait a second for fluid to settle down
-                            time.sleep(1)
-
-                            files = {'file': (self.fluidSettings.get("Config/Filename"), self.fluidConfig)}
-                            r = requests.post(url, files=files)
-                            r.close()
-
-                            if not "fluidSettings" in data:
-                                _bgs.queue_cmds_and_send(self, ["$Bye"])
-                        except Exception as e:
-                            self._logger.warn("__init__: on_settings_save unable to save fluid config: {}".format(e))
-                            _bgs.update_fluid_config(self)
-                    else: 
-                        _bgs.update_fluid_config(self)
-
-                # save our fluid settings
-                if "fluidSettings" in data:
-                    for key, value in data.get("fluidSettings", {}).items():
-                        self._printer.commands("${}={}".format(key, value))
-
-                    if "fluidYaml" in data:
-                        _bgs.queue_cmds_and_send(self, ["$Bye"])
-                    else:
-                        _bgs.queue_cmds_and_send(self, ["$Bye", "$CD"])
-    
-                # refresh our grbl settings
-                if not _bgs.is_grbl_fluidnc(self):
-                    if self.doSmoothie:
-                        self._printer.commands("Cat /sd/config")
-                    else:
-                        self._printer.commands("$+" if _bgs.is_grbl_esp32(self) else "$$")
-
-        # resume status requests (after 10 seconds)
-        threading.Thread(target=_bgs.defer_resuming_status_reports, args=(self, 10, "fluidYaml" in data or "fluidSettings" in data)).start()
 
 
     # #~~ AssetPlugin mixin
@@ -1239,9 +1181,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         # grbl version info
         if cmd.upper().startswith("$I"):
             self.grblVersion = ""
-            self.fluidYaml = ""
             self._settings.set(["grblVersion"], self.grblVersion)
-            self._settings.set(["fluidYaml"], self.fluidYaml)
             self._settings.save(trigger_event=True)
 
         # we need to track absolute position mode for "RUN" position updates
@@ -1462,18 +1402,6 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             self.lastRequest.pop(0)
             self._logger.debug("tracked cmd: [{}] result: [{}]".format(lastRequest, lastResponse))
 
-            # fluidnc config downloaded
-            if lastRequest.upper() in ("$CD", "$CONFIG/DUMP"):
-                self.fluidConfig = lastResponse
-                self.fluidYaml = yaml.safe_load(lastResponse)
-                self._settings.set(["fluidYaml"], yaml.dump(self.fluidYaml, sort_keys=False).replace(": null", ": "))
-                self._settings.set_boolean(["laserMode"], _bgs.is_laser_mode(self))
-                self._settings.save(trigger_event=True)
-                # lets populate our x,y,z limits (namely set distance)
-                _bgs.get_axes_limits(self)
-                # retreive the fluid settings out of config yaml 
-                self._printer.commands("$S")
-
             # grbl settings received
             if lastRequest.upper() in ("$$", "$+", "M115"): 
                 self.grblConfig = lastResponse.split("\n")
@@ -1487,15 +1415,6 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             if lastRequest.upper() in ("$I", "$BUILD/INFO"):
                 self.grblVersion = lastResponse.replace("\n", " ").replace("\r", "")
                 self._settings.set(["grblVersion"], self.grblVersion)
-                self._settings.save(trigger_event=True)
-                # trigger a fluidnc config download if fluid is detected
-                if self.fluidConfig is None and _bgs.is_grbl_fluidnc(self):
-                    self._printer.commands("$CD")
-
-            # fluid settings outside of config yaml
-            if lastRequest.upper() in ("$S", "$SETTINGS/LIST"):
-                self.fluidSettings = json.loads("{" + lastResponse.replace("\r", "").replace("=", '": "').replace("\n", '", ').replace("$", '"').replace("\\", "\\\\") + '"}')
-                self._settings.set(["fluidSettings"], self.fluidSettings)
                 self._settings.save(trigger_event=True)
         return "ok "
 
