@@ -80,40 +80,6 @@
 				</label>
 
 				<br>
-
-		 		<label class="checkbox">
-		  			<input type="checkbox" data-bind="checked: settings.plugins.latheengraver.autoSleep"> Automatic Sleep
-				</label>
-
-			<!-- ko if: settings.plugins.latheengraver.autoSleep -->
-
-			<label class="control-label">Inactivity Time</label>
-			<div class="controls">
-					<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.latheengraver.autoSleepInterval, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">min
-			</div>
-
-			<br>
-
-			<!-- /ko -->
-
-			<label class="checkbox">
-					<input type="checkbox" data-bind="checked: settings.plugins.latheengraver.autoCooldown"> Automatic Cooldown
-			</label>
-
-			<!-- ko if: settings.plugins.latheengraver.autoCooldown -->
-
-			<label class="control-label">Cooldown Frequency</label>
-			<div class="controls">
-				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.latheengraver.autoCooldownFrequency, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">min
-			</div>
-
-			<label class="control-label">Cooldown Duration</label>
-			<div class="controls">
-				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.latheengraver.autoCooldownDuration, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">min
-			</div>
-
-			<!-- /ko -->
-
 		</div>
 
 		<br>

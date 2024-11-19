@@ -163,15 +163,6 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.plungeRate = float(0)
         self.powerRate = float(0)
 
-        self.autoSleep = False
-        self.autoSleepInterval = 20
-
-        self.autoSleepTimer = time.time()
-
-        self.autoCooldown = False
-        self.autoCooldownFrequency = 60
-        self.autoCooldownDuration = 15
-
         self.invertX = 1
         self.invertY = 1
         self.invertZ = 1
@@ -273,19 +264,12 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             laserMode = False,
             old_profile = "_default",
             useDevChannel = False,
-            autoSleep = False,
-            autoSleepInterval = 20,
-            autoCooldown = False,
-            autoCooldownFrequency = 60,
-            autoCooldownDuration = 15,
             wizard_version = 1,
             invertX = False,
             invertY = False,
             invertZ = False,
             bgsFilters = self.bgs_filters,
             activeFilters = [],
-            fluidYaml = None,
-            fluidSettings = {},
             hasA = True,
             hasB = True,
             minZ_th = -1.0,
@@ -356,13 +340,6 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self._settings.global_set_boolean(["feature", "modelSizeDetection"], not self.disableModelSizeDetection)
         self._settings.global_set_boolean(["feature", "sdSupport"], False)
         self._settings.global_set_boolean(["serial", "neverSendChecksum"], self.neverSendChecksum)
-
-        self.autoSleep = self._settings.get_boolean(["autoSleep"])
-        self.autoSleepInterval = round(float(self._settings.get(["autoSleepInterval"])))
-
-        self.autoCooldown = self._settings.get_boolean(["autoCooldown"])
-        self.autoCooldownFrequency = round(float(self._settings.get(["autoCooldownFrequency"])))
-        self.autoCooldownDuration = round(float(self._settings.get(["autoCooldownDuration"])))
 
         self.invertX = -1 if self._settings.get_boolean(["invertX"]) else 1
         self.invertY = -1 if self._settings.get_boolean(["invertY"]) else 1
@@ -941,19 +918,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 return (None, )
             else:
                 if self.suppressM105:
-                    # go to sleep if autosleep and now - last > interval
-                    # self._logger.debug("autosleep enabled={} interval={} timer={} time={} diff={}".format(self.autoSleep, self.autoSleepInterval, self.autoSleepTimer, time.time(), time.time() - self.autoSleepTimer))
-                    if self.autoSleep and time.time() - self.autoSleepTimer > self.autoSleepInterval * 60:
-                        if self.grblState.upper() != "SLEEP" and self._printer.is_operational() and not self._printer.is_printing():
-                            _bgs.queue_cmds_and_send(self, ["$SLP"])
-                        else:
-                            self._logger.debug("resetting autosleep timer")
-                            self.autoSleepTimer = time.time()
-
-                    self._logger.debug('Rewriting M105 as %s' % self.statusCommand)
                     return (self.statusCommand, )
-
-        self.autoSleepTimer = time.time()
 
         # hack for unacknowledged grbl commmands
         if "$H" in cmd.upper() or "G38.2" in cmd.upper():
@@ -1003,32 +968,27 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         # M8 (air assist on) processing - work in progress
         if cmd.upper() in ("M7", "M8"):
             self.coolant = cmd.upper()
-            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", colant=self.coolant))
-
             if self.overrideM8 and cmd.upper() == "M8":
                 self._logger.debug('Turning ON Air Assist')
-                subprocess.call(self.m8Command, shell=True)
-
                 return (None,)
 
         # M9 (air assist off) processing - work in progress
         if cmd.upper() == "M9":
             self.coolant = cmd.upper()
-            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", colant=self.coolant))
-
             if self.overrideM9:
                 self._logger.debug('Turning OFF Air Assist')
-                subprocess.call(self.m9Command, shell=True)
-
                 return (None,)
+            
         if cmd.upper() == "G91":
             self.relative = True
             self._logger.info("Relative mode")
             return (cmd, )
+        
         if cmd.upper() == "G90":
             self._logger.info("Absolute mode")
             self.relative = False
             return (cmd, )
+        
         if cmd.upper() == "DOBANGLE":
             self.do_bangle = True
             #turn on RTCM as well
@@ -1062,13 +1022,16 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             self.do_mod_a = False
             self._logger.info('Depth modification inactive')
             return (None, )
+        
         if cmd.upper() == "DOARCMOD":
             self.do_mod_z = True
             self.RTCM = True
             return (None, )
+        
         if cmd.upper() == "STOPARCMOD":
             self.do_mod_z = False
             return (None, )
+        
         if cmd.upper().startswith("MAXARC"):
             minmax_match = re.search(r"MAXARC ([\d.]+)", cmd)
             if minmax_match:
@@ -1078,7 +1041,6 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 if self.maxarc == 0.0:
                     self.do_mod_z = False 
                     self._logger.info("MAXARC inactive")
-                
             return (None, )
         
         if cmd.upper().startswith("ARCADD"):
@@ -1112,7 +1074,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             diam_match = re.search(r"DIAM ([\d.]+)", cmd)
             if diam_match:
                 self.DIAM = float(diam_match.groups(1)[0])
-                self._logger.info('Diameter set: {0}'.format(self.DIAM))
+                self._logger.info('Start Diameter set: {0}'.format(self.DIAM))
             return (None, )
         
         if cmd.upper() == "RTCM":
