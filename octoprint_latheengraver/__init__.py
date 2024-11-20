@@ -810,6 +810,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 trans_x = self.queue_X*math.cos(bangle) + (self.queue_Z - zmod)*math.sin(bangle) - delta_x
                 trans_z = -self.queue_X*math.sin(bangle) + (self.queue_Z - zmod)*math.cos(bangle) - delta_z
                 trans_z_init = -self.queue_X*math.sin(bangle) + (0 - zmod)*math.cos(bangle) - delta_z
+
                 if self.do_mod_a:
                     trans_a, deltaZ = self.get_new_A(trans_z_init, self.queue_A)
                     trans_z = trans_z+deltaZ
@@ -1827,6 +1828,8 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             if not self.template:
                 self.cut_depth = "N/A"
             self.do_bangle = False
+            self.do_mod_a = False
+            self.do_mod_z = False
             self.TERMINATE = False
             self.queued_command = ""
             self.pauses_started = False
@@ -1856,6 +1859,8 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             if not self.template:
                 self.cut_depth = "N/A"
             self.do_bangle = False
+            self.do_mod_a = False
+            self.do_mod_z = False
             self.TERMINATE = False
             self.queued_command = ""
             self.pauses_started = False
