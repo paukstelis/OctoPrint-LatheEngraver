@@ -153,8 +153,11 @@ $(function() {
                         "direction": direction,
                         "distance": distance,
                         "axis": self.origin_axis() })
-                    start_print_command();
-                    dialog.modal('hide');
+                    .done(function(response) {
+                            console.log("Command succeeded:", response);
+                            dialog.modal('hide');
+                            start_print_command();
+                        })
                 });
             } else {
                 showDialog("#cncStartDialog", function(dialog){
