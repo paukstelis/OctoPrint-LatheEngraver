@@ -1051,13 +1051,16 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             return (None, )
         
         if cmd.upper() == "DOMODA":
+            self._logger.info(f'DOMODA hit, ignore_moda is {self.ignore_moda}')
             if self.ignore_moda:
                 self.do_mod_a = False
+                self._logger.info('Depth modification disabled in run setup')
                 return (None, )
-            self.do_mod_a = True
-            self.RTCM = True
-            self._logger.info('Depth modification enabled')
-            return (None, )
+            else:
+                self.do_mod_a = True
+                self.RTCM = True
+                self._logger.info('Depth modification enabled')
+                return (None, )
         
         if cmd.upper() == "STOPMODA":
             self.do_mod_a = False

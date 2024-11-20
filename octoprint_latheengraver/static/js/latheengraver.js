@@ -166,8 +166,12 @@ $(function() {
                         "minZ_inc": self.minZ_inc(),
                         "ovality": self.ovality(),
                         "ignore_moda": self.ignore_moda()})
-                    start_print_command();
-                    dialog.modal('hide');
+                    .done(function(response) {
+                        console.log("Command succeeded:", response);
+                        dialog.modal('hide');
+                        start_print_command();
+                    })
+                    
                 });
             }
 
