@@ -147,6 +147,12 @@ $(function() {
         
         self.onBeforePrintStart = function(start_print_command) {
             var laserMode = self.settings.settings.plugins.latheengraver.laserMode();
+            OctoPrintClient.job.get().done(function(file) {
+                if (file) {
+                   console.log(file);
+                }
+
+            });
             if (laserMode === "true") {
                 showDialog("#laserStartDialog", function(dialog){
                     OctoPrint.simpleApiCommand("latheengraver", "laserrun", { "sessionId": self.sessionId,

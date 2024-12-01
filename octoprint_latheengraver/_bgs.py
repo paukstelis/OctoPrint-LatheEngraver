@@ -761,17 +761,17 @@ def defer_generate_metadata_for_file(_plugin, filename, notify):
         f = open(file, 'r')
 
         minX = float("inf")
-        minY = float("inf")
+        minZ = float("inf")
         maxX = float("-inf")
-        maxY = float("-inf")
+        maxZ = float("-inf")
 
         x = float(0)
-        y = float(0)
+        z = float(0)
 
         overX = False
-        overY = False
+        overZ = False
         underX = False
-        underY = False
+        underZ = False
 
         lastGCommand = ""
         positioning = _plugin.positioning
@@ -822,37 +822,26 @@ def defer_generate_metadata_for_file(_plugin, filename, notify):
                     maxX = x
 
             # match = re.search(r"^G([0][0123]|[0123])(\D.*[Yy]|[Yy])\ *(-?[\d.]+).*", command)
-            match = re.search(r".*[Y]\ *(-?[\d.]+).*", command)
+            match = re.search(r".*[Z]\ *(-?[\d.]+).*", command)
             if not match is None:
-                y = float(match.groups(1)[0]) if positioning == 0 else y + float(match.groups(1)[0])
-                if y < minY:
-                    if not underY and y <= -1:
-                        _plugin._logger.debug("underY y=[{}]".format(y))
-                        underY = True
-                    minY = y
-                if y > maxY:
-                    if not overY and y > 1:
-                        _plugin._logger.debug("overY y=[{}]".format(y))
-                        overY = True
-                    maxY = y
+                z = float(match.groups(1)[0]) if positioning == 0 else z + float(match.groups(1)[0])
+                if z < minZ:
+                    if not underZ and z <= -1:
+                        _plugin._logger.debug("underZ z=[{}]".format(z))
+                        underZ = True
+                    minZ = z
+                if z > maxZ:
+                    if not overZ and z > 1:
+                        _plugin._logger.debug("overZ z=[{}]".format(z))
+                        overZ = True
+                    maxZ = z
 
-        length = math.ceil(maxY - minY)
+        length = math.ceil(maxZ - minZ)
         width = math.ceil(maxX - minX)
 
         # bottom
-        if overY and not underY and overX and not underX: origin = "grblBottomLeft"
-        if overY and not underY and overX and underX: origin = "grblBottomCenter"
-        if overY and not underY and not overX and underX: origin = "grblBottomRight"
 
-        # center
-        if overY and underY and overX and not underX: origin = "grblCenterLeft"
-        if overY and underY and overX and underX: origin = "grblCenter"
-        if overY and underY and not overX and underX: origin = "grblCenterRight"
-
-        # top
-        if not overY and underY and overX and not underX: origin = "grblTopLeft"
-        if not overY and underY and overX and underX: origin = "grblTopCenter"
-        if not overY and underY and not overX and underX: origin = "grblTopRight"
+        origin = "grblCenter"
 
         _plugin._file_manager.set_additional_metadata("local", filename, "bgs_length", length, overwrite=True)
         _plugin._file_manager.set_additional_metadata("local", filename, "bgs_width", width, overwrite=True)
