@@ -48,6 +48,7 @@ import flask
 import yaml
 import math
 import requests
+import asyncio
 
 class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                               octoprint.plugin.SimpleApiPlugin,
@@ -141,6 +142,10 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.TERMINATE = False
         self.job_on_hold = False
 
+        self.rotate = False
+        self.rotateFeed = 0
+        self.feedcontrol = {"current": 0, "prev": 0, "next": 0}
+        self.rotateThread = None
         self.relative = False
         self.tooldistance = 135.0
         self.timeRef = 0
@@ -297,7 +302,6 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
     def on_after_startup(self):
         self._logger.debug("__init__: on_after_startup")
         self.datafolder = self.get_plugin_data_folder()
-
         # establish initial state for printer status
         self._settings.set_boolean(["is_printing"], self._printer.is_printing())
         self._settings.set_boolean(["is_operational"], self._printer.is_operational())
@@ -922,6 +926,26 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
 
         return mod_x, mod_z
     
+    def rotation(self):
+        #set A axis maxfeed rate to account for 30 RPM
+        self._printer.commands(["$113=10800"], force=True)
+        tms = round(time.time() * 1000)
+        self.feedcontrol["current"] = tms
+        #calculate when the next commands should be sent
+        next = (180/(self.rotateFeed*360))*60000
+        self.feedcontrol["next"] = tms+next
+        self._logger.info(self.feedcontrol)
+        self._printer.commands([f"G93 G91 G1 A180 F{self.rotateFeed*2}"], force=True)
+        while self.rotate:
+            tms = round(time.time() * 1000)
+            if (self.feedcontrol["next"] - tms) < 120:
+                remaining = int(self.feedcontrol["next"] - tms)
+                self._logger.info(f"begin next rotation at {remaining} ms remaining")
+                self._printer.commands([f"G93 G91 G1 A180 F{self.rotateFeed*2}"], force=True)
+                self.feedcontrol["current"] = tms
+                self.feedcontrol["next"] = self.feedcontrol["next"]+((180/(self.rotateFeed*360))*60000)
+            time.sleep(0.1)
+
     def start_termination(self):
         #need these commands to be queued, so don't use Force
         self._printer.commands(["G0 Z5", "M5", "M30", "TERMINATE"], force=True)
@@ -1129,6 +1153,18 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             self._logger.info("Real-time coordinate modification not activated")
             return (None, )
 
+        if cmd.upper().startswith("ROTATE"):
+            speedmatch = re.search(r"ROTATE ([\d.]+)", cmd)
+            if speedmatch:
+                self.rotateFeed = float(speedmatch.groups(1)[0])
+                if self.rotateFeed > 30.0: self.rotateFeed = 30.0
+                if not self.rotateFeed:                
+                    self.rotate = False
+                    return (None, )
+                if not self.rotate:
+                    self.rotate = True
+                    self.rotateThread = threading.Thread(target=self.rotation, args=()).start()
+            return (None, )
         # Grbl 1.1 Realtime Commands (requires Octoprint 1.8.0+)
         # see https://github.com/OctoPrint/OctoPrint/pull/4390
 
