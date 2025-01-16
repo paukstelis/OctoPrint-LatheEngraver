@@ -848,7 +848,10 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 if not calcdiam:
                     calcdiam = .001
                 feedadjust = self.DIAM/calcdiam
-                assembly["F"] = self.queue_F*feedadjust
+                if not assembly["F"]:
+                    assembly["F"] = self.queue_F*feedadjust
+                else:
+                    assembly["F"] = assembly["F"]*feedadjust
 
             
         assembly["X"] = trans_x
