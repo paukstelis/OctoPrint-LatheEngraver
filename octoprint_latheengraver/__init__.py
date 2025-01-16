@@ -841,13 +841,14 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                         safecmd.append(self.assemble_command(newcmd, assembly))
                         return safecmd
                     '''
-            
-            #adjust feed
-            calcdiam = self.DIAM - abs(trans_z)
-            if not calcdiam:
-                calcdiam = .001
-            feedadjust = self.DIAM/calcdiam
-            assembly["F"] = self.queue_F*feedadjust
+
+            #only need to do this feed adjustment for polar cases ~+/- 85 to 95
+            if 85 < abs(self.queue_B) < 95:
+                calcdiam = self.DIAM - abs(trans_z) 
+                if not calcdiam:
+                    calcdiam = .001
+                feedadjust = self.DIAM/calcdiam
+                assembly["F"] = self.queue_F*feedadjust
 
             
         assembly["X"] = trans_x
