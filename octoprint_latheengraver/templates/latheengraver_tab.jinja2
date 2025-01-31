@@ -109,7 +109,7 @@
             </td>
             <td style="padding: 0px 0px 10px 0px; transform: translate(-5px);" align="left">
                <label>Zero</label>
-               <button class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() { sendCommand('origin') }">
+               <button class="btn box" style="border: 1px solid; width: 40px; height: 40px;" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() { sendCommand('origin') }">
                <i class="fa fa-crosshairs"></i>
                </button>
             </td>
@@ -122,7 +122,7 @@
          </tr>
          <tr>
             <td style="padding: 0px 0px 10px 0px;">
-               <button id="control-zup" class="btn box" style="visibility: hidden; border: 1px solid; width: 40px; height: 40px" data-bind="enable: isIdleOrJogging() && operator() != 'J', click: function() {jog('up')}">
+               <button id="control-zup" class="btn box" style="visibility: hidden; border: 1px solid; width: 40px; height: 40px;" data-bind="enable: isIdleOrJogging() && operator() != 'J', click: function() {jog('up')}">
                  <i class="fa fa-arrow-up"></i>
                </button>
             </td>
@@ -131,7 +131,7 @@
                  <i class="fa fa-arrow-up" style="transform: rotate(-45deg);"></i>
                </button>
 
-               <button id="control-zdown" class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="enable: isIdleOrJogging() && operator() != 'J', click: function() {jog('down')}">
+               <button id="control-zdown" class="btn box" style="border: 1px solid; width: 40px; height: 40px; transform: translate(5px);" data-bind="enable: isIdleOrJogging() && operator() != 'J', click: function() {jog('down')}">
                <i class="fa fa-arrow-up"></i>
                </button>
 
@@ -142,7 +142,7 @@
          </tr>
          <tr>
             <td style="padding: 0px 0px 10px 0px;">
-               <button class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() {moveHead('probe')}">
+               <button class="btn box" style="visibility: hidden;border: 1px solid; width: 40px; height: 40px" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() {moveHead('probe')}">
                  <i class="fa fa-search-plus"></i>
                </button>
             </td>
@@ -168,7 +168,7 @@
                <button class="btn box" style="visibility: hidden;border: 1px solid; width: 40px; height: 40px" data-bind="event: { touchstart: function() {jog('southwest')}, mousedown: function() {jog('southwest')}, touchend: function() {cancelJog()}, mouseup: function() {cancelJog()}}, enable: isIdleOrJogging()">
                <i class="fa fa-arrow-down" style="transform: rotate(45deg);"></i>
                </button>
-               <button id="control-zup" class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="enable: isIdleOrJogging() && operator() != 'J', click: function() {moveHead('up')}">
+               <button id="control-zup" class="btn box" style="border: 1px solid; width: 40px; height: 40px; transform: translate(5px);" data-bind="enable: isIdleOrJogging() && operator() != 'J', click: function() {moveHead('up')}">
                  <i class="fa fa-arrow-down"></i>
                </button>
                <button class="btn box" style="visibility: hidden; border: 1px solid; width: 40px; height: 40px" data-bind="event: { touchstart: function() {jog('southeast')}, mousedown: function() {jog('southeast')}, touchend: function() {cancelJog()}, mouseup: function() {cancelJog()}}, enable: isIdleOrJogging()">
@@ -213,9 +213,11 @@
          <tr>
             <td colspan=3 align="center" class="distance">
               <span>
+              <!--
                 <span>
                   <button id="control-distance-operator" type="button" class="btn" style="border: 1px solid; width: 35px; margin: 5px 0px 0px 0px" data-bind="click: function() { operatorClicked() }, text: operator"></button>
                 </span>
+              -->
                 <span style="margin: 0px 1px 0px 1px">&nbsp;</span>
                  <span align="center" class="btn-group">
                     <!-- ko foreach: distances -->
@@ -233,11 +235,11 @@
    </span>
 
    <span id="laser_buttons" style="display: inline-block; vertical-align: top; margin: 20px 0px 20px 0px" >
-      <!-- ko if: settings.settings.plugins.latheengraver.laserMode -->
-        <button id="grblLaserButton" class="btn" style="width: 140px; border: 1px solid;" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() { toggleWeak() }">Weak Laser</button>
+      
+        <button id="grblLaserButton" class="btn laserbtn" style="width: 140px; border: 1px solid;" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() { toggleWeak() }">Weak Laser</button>
         <br>
         <br>
-      <!-- /ko -->
+
       <button class="btn" style="width: 140px; border: 1px solid;" data-bind="enable: is_operational(), click: function() { sendCommand('reset') }">Soft Reset</button>
       <br>
       <br>

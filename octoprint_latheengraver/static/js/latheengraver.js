@@ -322,22 +322,8 @@ $(function() {
         };
 
         self.distanceClicked = function(distance) {
-            var operator;
-            if (self.operator() == "+") {
-                operator = 1;
-            } else {
-                if (self.operator() == "-") {
-                    operator = -1;
-                } else {
-                    operator = 0;
-                }
-            }
 
-            if (operator != 0) {
-                self.distance(parseFloat(self.distance()) + (parseFloat(distance) * operator));
-            } else {
                 self.distance(parseFloat(distance));
-            }
         };
 
         self.operatorClicked = function() {
@@ -498,6 +484,7 @@ $(function() {
 
             if (self.settings.settings.plugins.latheengraver.hasA() == true) { self.origin_axes.push("A"); }
             if (self.settings.settings.plugins.latheengraver.hasB() == true) { self.origin_axes.push("B"); }
+            if (self.settings.settings.plugins.latheengraver.laserMode() == true) { $(".laserbtn").show(); }
     
             self.notifications.requestData = self.overrideRequestData;
             self.notifications.clear = self.overrideClear;
@@ -620,6 +607,15 @@ $(function() {
                 }
                 // console.log("mode=" + data.mode + " state=" + data.state + " x=" + data.x + " y=" + data.y + " z=" + data.z + " power=" + data.power + " speed=" + data.speed);
                 return
+            }
+
+            if (plugin == 'latheengraver' && data.type == 'laserchange') {
+                console.log(data);
+                if (data.laser == "true") {
+                    $(".laserbtn").show();
+                } else {
+                    $(".laserbtn").hide();
+                }
             }
 
             if (plugin == 'latheengraver' && data.type == 'simple_notify') {
@@ -1047,11 +1043,6 @@ $(function() {
                 case 221: // [
                     button = $("#control-b-right");
                     simulateTouch = true;
-                    break;
-                case 49: // number 1
-                case 97: // numpad 1
-                    // toggle operator
-                    button = $("#control-distance-operator");
                     break;
                 case 50: // number 2
                 case 98: // numpad 2

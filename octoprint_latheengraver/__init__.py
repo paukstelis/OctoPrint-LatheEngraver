@@ -48,6 +48,7 @@ import flask
 import yaml
 import math
 import requests
+import asyncio
 
 class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                               octoprint.plugin.SimpleApiPlugin,
@@ -120,7 +121,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.do_mod_a = False
         self.do_mod_z = False
         self.bangle = float(0)
-        self.Afeed = False
+        self.boundary = {"boundary" : False, "yval" : 0, "calc_aval": 0, "mod_aval": 0, "direction": "negative", "start": 0.0}
         self.S_limit = False
         self.S_val = float(0)
         self.minFeed = float(0)
@@ -141,6 +142,10 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.TERMINATE = False
         self.job_on_hold = False
 
+        self.rotate = False
+        self.rotateFeed = 0
+        self.feedcontrol = {"current": 0, "prev": 0, "next": 0}
+        self.rotateThread = None
         self.relative = False
         self.tooldistance = 135.0
         self.timeRef = 0
@@ -297,7 +302,6 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
     def on_after_startup(self):
         self._logger.debug("__init__: on_after_startup")
         self.datafolder = self.get_plugin_data_folder()
-
         # establish initial state for printer status
         self._settings.set_boolean(["is_printing"], self._printer.is_printing())
         self._settings.set_boolean(["is_operational"], self._printer.is_operational())
@@ -699,6 +703,8 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         newcmd = ''
         match_cmd = self.match_cmd.match(cmd)
         gcommands = []
+        boundary_clear = False #split up G0 moves
+        safemove = False #if boundary condition is cleared during G1s, add safe move
         moves = ["G1", "G01", "G0", "G00"]
          
         match_x = self.match_x.match(cmd)
@@ -721,6 +727,10 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             #assembly["COMM"] = "{0} ".format(c)
         self._logger.debug("new command is: {}".format(newcmd))
         self._logger.debug(f"Template: {self.template}, Depth: {self.cut_depth}, queue_z: {self.queue_Z}")
+        if "G0" in newcmd and self.boundary["boundary"]:
+            self.boundary["boundary"] = False
+            self._logger.debug("Boundary cleared")
+            boundary_clear = True
         #single axis match things first
         if match_z:
             self.queue_Z = float(match_z.groups(1)[0])
@@ -764,9 +774,6 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             assembly["B"] = self.queue_B
         if match_f:
             self.queue_F = float(match_f.groups(1)[0])
-            if self.Afeed:
-                if self.queue_F < self.minFeed:
-                    self.queue_F = self.minFeed
             if self.feedRate != 0:
                 self.queue_F = self.queue_F * self.feedRate
             assembly["F"] = self.queue_F
@@ -812,15 +819,52 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 trans_z_init = -self.queue_X*math.sin(bangle) + (0 - zmod)*math.cos(bangle) - delta_z
 
                 if self.do_mod_a:
-                    trans_a, deltaZ = self.get_new_A(trans_z_init, self.queue_A)
+                    trans_a, deltaZ, safemove = self.get_new_A(trans_z_init, self.queue_A, newcmd)
                     trans_z = trans_z+deltaZ
+                    '''
+                    if safemove:
+                        #recalculate trans_x and trans_z
+                        safe_Z = 10
+                        trans_x_safe = self.queue_X*math.cos(bangle) + (safe_Z)*math.sin(bangle) - delta_x
+                        trans_z_safe = -self.queue_X*math.sin(bangle) + (0-zmod)*math.cos(bangle) - delta_z
+                        safecmd = []
+                        assembly["X"] = trans_x
+                        assembly["Z"] = trans_z
+                        assembly["A"] = trans_a
+                        assembly["B"] = self.queue_B
+                        safecmd.append(f"G0 X{trans_x_safe:.3f} Z{trans_z_safe:.3f}")
+                        safecmd.append(f"G0 A{trans_a:.3f}")
+                        safecmd.append(self.assemble_command(newcmd, assembly))
+                        return safecmd
+                    '''
+
+            #only need to do this feed adjustment for polar cases ~+/- 85 to 95
+            if 85 < abs(self.queue_B) < 95:
+                calcdiam = self.DIAM - abs(trans_z) 
+                if not calcdiam:
+                    calcdiam = .001
+                feedadjust = self.DIAM/calcdiam
+                if not assembly["F"]:
+                    assembly["F"] = self.queue_F*feedadjust
+                else:
+                    assembly["F"] = assembly["F"]*feedadjust
+
             
         assembly["X"] = trans_x
         assembly["Z"] = trans_z
         assembly["A"] = trans_a
         assembly["B"] = self.queue_B
         self._logger.debug("assembly is: {}".format(assembly))
-        self._logger.debug("original values: X{0} Z{1}".format(self.queue_X, self.queue_Z))
+        self._logger.debug("original values: X{0} Z{1} A{2}".format(self.queue_X, self.queue_Z, self.queue_A))
+        #split up any G0 X,Z, moves from A moves
+        if boundary_clear:
+            cmds = []
+            aval = assembly["A"]
+            assembly["A"] = None
+            cmds.append(self.assemble_command(newcmd, assembly))
+            assembly["A"] = aval
+            cmds.append(self.assemble_command(newcmd, assembly))
+            return cmds
         cmd = self.assemble_command(newcmd, assembly)
         return cmd
 
@@ -828,10 +872,13 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         cmd = newcmd
         for key, value in assembly.items():
             if value is not None:
-                cmd = cmd+" {0}{1:.4f}".format(str(key), value)
+                cmd = cmd+" {0}{1:.3f}".format(str(key), value)
         return cmd
     
-    def get_new_A(self, zval, aval):
+    def get_new_A(self, zval, aval, newcmd):
+        sb = self.boundary
+        domod = True
+        safemove = False
         radius = self.DIAM/2
         calc_Arad = math.radians(float(aval))
         calc_Y = calc_Arad*(radius)
@@ -843,10 +890,72 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
        
         if calc_Y < 0:
             new_A = new_A*-1
-        local_distance = distance - radius - zval
-        self._logger.debug("Calc. Y: {0:.2f}, Distance: {1:.2f}, To Origin: {2:.2f}, Degrees: {3:.2f}, Zval: {4:.2f}".format(calc_Y, distance, to_origin, math.degrees(new_A), zval))
-        return math.degrees(new_A), local_distance
+        
+        if calc_Y == 0.0:
+            #previous value is negative so also make this -180
+            #handles only exactly 180 degrees
+            if self.boundary["calc_aval"] < 0:
+                new_A = new_A*-1
 
+        local_distance = distance - radius - zval
+        new_A = math.degrees(new_A)
+        self._logger.debug(f"Pre-modified A: {new_A}")
+        newest_A = new_A
+
+        #already in boundary mode:
+        if self.boundary["boundary"]:
+            #direction swap check in the boundary modification block
+            if calc_Y * sb['yval'] < 0 and abs(sb["calc_aval"] - new_A) > 200:
+                self._logger.debug("Boundary direction change, breaking out of boundary")
+                sb["boundary"] = False
+                domod = False
+
+            #get the new value
+            if domod:    
+                newest_A = self.get_boundary_value(new_A)
+
+            #special cases where direction changes happens in a G1 move
+            #This seems to ONLY happen when a path is traced twice in the same direction
+            #it may be possible to remove the whole safemove setup
+            if "G1" in newcmd and abs(sb['mod_aval'] - newest_A) > 179:
+                safemove = True
+        
+        #not in boundary mode
+        if not sb["boundary"] and domod:
+            if abs(sb["calc_aval"] - new_A) > 200:
+                self._logger.debug("BOUNDARY CONDITION - Setting boundary state to active")
+                sb["boundary"] = True
+                sb["start"] = newest_A
+                #don't count G0 moves
+                if "G0" in newcmd:
+                    sb["boundary"] = False
+                else:
+                    newest_A = self.get_boundary_value(new_A)
+
+            #these set the current direction, but must be checked
+            elif sb["calc_aval"] > newest_A:
+                sb["direction"] = "negative"
+            elif sb["calc_aval"] < newest_A:
+                sb["direction"] = "positive"
+
+        #recalc direction
+        sb["calc_aval"] = new_A
+        sb["yval"] = calc_Y
+        sb["mod_aval"] = newest_A
+
+        self._logger.debug("Calc. Y: {0:.2f}, Distance: {1:.2f}, To Origin: {2:.2f}, Degrees: {3:.2f}, Zval: {4:.2f}".format(calc_Y, distance, to_origin, newest_A, zval))
+        return newest_A, local_distance, safemove
+
+    def get_boundary_value(self, aval):
+        sb = self.boundary
+        newest_A = 0
+        if sb["direction"] == "negative":
+            newest_A = aval - 360
+        else:
+            newest_A = aval + 360
+        self._logger.debug(sb)
+        return newest_A
+    
     def get_a_profile(self, profile):
         self.a_profile = []
         try: 
@@ -922,6 +1031,26 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
 
         return mod_x, mod_z
     
+    def rotation(self):
+        #set A axis maxfeed rate to account for 30 RPM
+        self._printer.commands(["$113=10800"], force=True)
+        tms = round(time.time() * 1000)
+        self.feedcontrol["current"] = tms
+        #calculate when the next commands should be sent
+        next = (180/(self.rotateFeed*360))*60000
+        self.feedcontrol["next"] = tms+next
+        self._logger.info(self.feedcontrol)
+        self._printer.commands([f"G93 G91 G1 A180 F{self.rotateFeed*2}"], force=True)
+        while self.rotate:
+            tms = round(time.time() * 1000)
+            if (self.feedcontrol["next"] - tms) < 120:
+                remaining = int(self.feedcontrol["next"] - tms)
+                self._logger.info(f"begin next rotation at {remaining} ms remaining")
+                self._printer.commands([f"G93 G91 G1 A180 F{self.rotateFeed*2}"], force=True)
+                self.feedcontrol["current"] = tms
+                self.feedcontrol["next"] = self.feedcontrol["next"]+((180/(self.rotateFeed*360))*60000)
+            time.sleep(0.1)
+
     def start_termination(self):
         #need these commands to be queued, so don't use Force
         self._printer.commands(["G0 Z5", "M5", "M30", "TERMINATE"], force=True)
@@ -1004,7 +1133,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         # M8 (air assist on) processing - work in progress
         if cmd.upper() in ("M7", "M8"):
             self.coolant = cmd.upper()
-            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", colant=self.coolant))
+            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", coolant=self.coolant))
 
             if self.overrideM8 and cmd.upper() == "M8":
                 self._logger.debug('Turning ON Air Assist')
@@ -1012,10 +1141,16 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
 
                 return (None,)
 
+        if cmd.upper().startswith("$32="):
+            #self._logger.info("Got a laser command")
+            lm = int(cmd[4])
+            self._settings.set_boolean(["laserMode"], bool(lm) )
+            self._logger.info(f"Setting laserMode to {lm}")
+            self._plugin_manager.send_plugin_message(self._identifier, dict(type="laserchange", laser=bool(lm)))
         # M9 (air assist off) processing - work in progress
         if cmd.upper() == "M9":
             self.coolant = cmd.upper()
-            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", colant=self.coolant))
+            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", coolant=self.coolant))
 
             if self.overrideM9:
                 self._logger.debug('Turning OFF Air Assist')
@@ -1091,16 +1226,6 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 self._logger.info("ARCADD set to {0}".format(self.maxarc))
                 self.arcadd = float(arcadd_match.groups(1)[0])
             return (None, )
-
-        if cmd.upper().startswith("AFEED"):
-            diam_match = re.search(r"AFEED ([\d.]+)", cmd)
-            if diam_match:
-                self.Afeed = True
-                self.minFeed = float(diam_match.groups(1)[0])
-            if self.minFeed < 1.0:
-                self.Afeed = False
-            self._logger.info('Afeed is: {0} and diameter is: {1}'.format(self.Afeed, self.minFeed))
-            return (None, )
         
         if cmd.upper().startswith("SLIMIT"):
             s_match = re.search(r"SLIMIT ([\d.]+)", cmd)
@@ -1129,6 +1254,18 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             self._logger.info("Real-time coordinate modification not activated")
             return (None, )
 
+        if cmd.upper().startswith("ROTATE"):
+            speedmatch = re.search(r"ROTATE ([\d.]+)", cmd)
+            if speedmatch:
+                self.rotateFeed = float(speedmatch.groups(1)[0])
+                if self.rotateFeed > 30.0: self.rotateFeed = 30.0
+                if not self.rotateFeed:                
+                    self.rotate = False
+                    return (None, )
+                if not self.rotate:
+                    self.rotate = True
+                    self.rotateThread = threading.Thread(target=self.rotation, args=()).start()
+            return (None, )
         # Grbl 1.1 Realtime Commands (requires Octoprint 1.8.0+)
         # see https://github.com/OctoPrint/OctoPrint/pull/4390
 
@@ -1639,7 +1776,8 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 # now rather than wait for it to be sent -- it could be a while for
                 # one to come in
                 if self._printer.is_printing():
-                    self._printer.commands("F{}".format(self.grblSpeed), force=True)
+                    self._printer.commands("F{}".format(self.queue_F*self.feedRate), force=True)
+                    self.queue_F=self.queue_F*self.feedRate
             else:
                 self.feedRate = float(0)
 
