@@ -122,7 +122,6 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.do_mod_z = False
         self.bangle = float(0)
         self.boundary = {"boundary" : False, "yval" : 0, "calc_aval": 0, "mod_aval": 0, "direction": "negative", "start": 0.0}
-        self.Afeed = False
         self.S_limit = False
         self.S_val = float(0)
         self.minFeed = float(0)
@@ -775,9 +774,6 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             assembly["B"] = self.queue_B
         if match_f:
             self.queue_F = float(match_f.groups(1)[0])
-            if self.Afeed:
-                if self.queue_F < self.minFeed:
-                    self.queue_F = self.minFeed
             if self.feedRate != 0:
                 self.queue_F = self.queue_F * self.feedRate
             assembly["F"] = self.queue_F
@@ -1137,7 +1133,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         # M8 (air assist on) processing - work in progress
         if cmd.upper() in ("M7", "M8"):
             self.coolant = cmd.upper()
-            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", colant=self.coolant))
+            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", coolant=self.coolant))
 
             if self.overrideM8 and cmd.upper() == "M8":
                 self._logger.debug('Turning ON Air Assist')
@@ -1145,10 +1141,16 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
 
                 return (None,)
 
+        if cmd.upper().startswith("$32="):
+            #self._logger.info("Got a laser command")
+            lm = int(cmd[4])
+            self._settings.set_boolean(["laserMode"], bool(lm) )
+            self._logger.info(f"Setting laserMode to {lm}")
+            self._plugin_manager.send_plugin_message(self._identifier, dict(type="laserchange", laser=bool(lm)))
         # M9 (air assist off) processing - work in progress
         if cmd.upper() == "M9":
             self.coolant = cmd.upper()
-            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", colant=self.coolant))
+            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", coolant=self.coolant))
 
             if self.overrideM9:
                 self._logger.debug('Turning OFF Air Assist')
@@ -1223,16 +1225,6 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             if arcadd_match:
                 self._logger.info("ARCADD set to {0}".format(self.maxarc))
                 self.arcadd = float(arcadd_match.groups(1)[0])
-            return (None, )
-
-        if cmd.upper().startswith("AFEED"):
-            diam_match = re.search(r"AFEED ([\d.]+)", cmd)
-            if diam_match:
-                self.Afeed = True
-                self.minFeed = float(diam_match.groups(1)[0])
-            if self.minFeed < 1.0:
-                self.Afeed = False
-            self._logger.info('Afeed is: {0} and diameter is: {1}'.format(self.Afeed, self.minFeed))
             return (None, )
         
         if cmd.upper().startswith("SLIMIT"):
@@ -1784,7 +1776,8 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 # now rather than wait for it to be sent -- it could be a while for
                 # one to come in
                 if self._printer.is_printing():
-                    self._printer.commands("F{}".format(self.grblSpeed), force=True)
+                    self._printer.commands("F{}".format(self.queue_F*self.feedRate), force=True)
+                    self.queue_F=self.queue_F*self.feedRate
             else:
                 self.feedRate = float(0)
 
