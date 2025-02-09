@@ -1015,8 +1015,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         diff = math.sqrt(((self.maxarc/2)**2) - (aval**2))
         zmod = modDiam - (modDiam*math.cos(diff))
         return zmod*self.arcadd
-    
-   
+
     def rotation(self):
         #set A axis maxfeed rate to account for 30 RPM
         self._printer.commands(["$113=10800"], force=True)
