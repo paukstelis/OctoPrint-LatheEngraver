@@ -699,7 +699,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         track_plunge = False
         orig_cmd = cmd
         #this is needed because B axis moves may not be emitted.
-        self.queue_B = self.grblB
+        #self.queue_B = self.grblB
         newcmd = ''
         match_cmd = self.match_cmd.match(cmd)
         gcommands = []
@@ -1016,21 +1016,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         zmod = modDiam - (modDiam*math.cos(diff))
         return zmod*self.arcadd
     
-    #Not currently used, might want to revisit later
-    def rot_trans_adjust(self, bvalues):
-        #get absolute positions first
-        bangle = self.grblB + bvalues
-        currentx = self.grblX
-        currentz = self.grblZ
-
-        bangle = math.radians(bangle)*-1
-        #mod_x = currentx*math.cos(bangle) + (currentz + self.tooldistance)*math.sin(bangle)
-        mod_x = self.tooldistance*math.sin(math.radians(bvalues))
-        mod_z = self.tooldistance*math.cos(bangle) - self.tooldistance
-        #mod_z = self.tooldistance*math.cos(bangle) - self.tooldistance
-
-        return mod_x, mod_z
-    
+   
     def rotation(self):
         #set A axis maxfeed rate to account for 30 RPM
         self._printer.commands(["$113=10800"], force=True)
@@ -1169,8 +1155,8 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             self.do_bangle = True
             #turn on RTCM as well
             self.RTCM = True
-            self.bangle = self.grblB
-            self._logger.info('do_bangle is: {0} and bangle is: {1}'.format(self.do_bangle, self.bangle))
+            self.queue_B = self.grblB
+            self._logger.info('do_bangle is: {0} and bangle is: {1}'.format(self.do_bangle, self.grblB))
             #set B to current position to make sure motor is engaged
             #newcmd = "G90 G1 B{0} F200".format(self.grblB)
             return (None, )
