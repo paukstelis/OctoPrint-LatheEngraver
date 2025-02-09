@@ -415,10 +415,6 @@ def on_event(_plugin, event, payload):
 def toggle_weak(_plugin):
     _plugin._logger.debug("_bgs: toggle_weak")
 
-    # only execute if laser mode enabled
-    if not is_laser_mode(_plugin):
-        return
-
     f = max(get_axes_max_rates(_plugin))
 
     if _plugin.grblPowerLevel == 0:
