@@ -1467,8 +1467,13 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         
         # match = re.search(r"^[GM]([0][01234]|[01234])(\D.*[Ff]|[Ff])\ *(-?[\d.]+).*", command)
         match = re.search(r".*[Ff]\ *(-?[\d.]+).*", cmd)
-        if not match is None:
+        if match:
             grblSpeed = float(match.groups(1)[0])
+            #adjustments only handled here when RTCM is off
+            if self.feedRate != 0 and not self.RTCM:
+                grblSpeed = grblSpeed * self.feedRate
+                cmd = cmd.upper().replace("F" + match.groups(1)[0], "F{:.3f}".format(grblSpeed))
+                cmd = cmd.upper().replace("F " + match.groups(1)[0], "F {:.3f}".format(grblSpeed))
             # make sure we post all speed on / off events
             if (grblSpeed == 0 and self.grblSpeed != 0) or (self.grblSpeed == 0 and grblSpeed != 0):
                 self.timeRef = 0
