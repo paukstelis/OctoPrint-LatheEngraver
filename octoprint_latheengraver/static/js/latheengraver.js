@@ -39,6 +39,8 @@ $(function() {
         self.distances = ko.observableArray([.1, 1, 5, 10, 60, 90]);
         self.distance = ko.observable(5);
 
+        self.jogmove = false;
+
         self.is_printing = ko.observable(false);
         self.is_operational = ko.observable(false);
         self.isLoading = ko.observable(undefined);
@@ -1000,6 +1002,15 @@ $(function() {
             return span + " " + offset;
         };
 
+        self.monitor_jog = function() {
+            if (self.jogmove == 1) {
+                self.jogmove = 2;
+            }
+            if (self.jogmove == 0) {
+                self.jogmove = 1;
+            } 
+        };
+
         self.onKeyDown = function (data, event) {
             if (!self.settings.feature_keyboardControl()) return;
 
@@ -1012,37 +1023,45 @@ $(function() {
                     // X-
                     button = $("#control-west");
                     simulateTouch = true;
+                    this.monitor_jog();
                     break;
                 case 38: // up arrow key
                     // Y+
                     button = $("#control-zdown");
                     simulateTouch = false;
+                    this.monitor_jog();
                     break;
                 case 39: // right arrow key
                     // X+
                     button = $("#control-east");
                     simulateTouch = true;
+                    this.monitor_jog();
                     break;
                 case 40: // down arrow key
                     // Y-
                     button = $("#control-zup");
                     simulateTouch = false;
+                    this.monitor_jog();
                     break;
                 case 188: //, or <
                     button = $("#control-a-right");
                     simulateTouch = true;
+                    this.monitor_jog();
                     break;
                 case 190: //. or >
                     button = $("#control-a-left");
                     simulateTouch = true;
+                    this.monitor_jog();
                     break;
                 case 219: // [
                     button = $("#control-b-left");
                     simulateTouch = true;
+                    this.monitor_jog();
                     break;
                 case 221: // [
                     button = $("#control-b-right");
                     simulateTouch = true;
+                    this.monitor_jog();
                     break;
                 case 50: // number 2
                 case 98: // numpad 2
@@ -1099,7 +1118,7 @@ $(function() {
                     event.preventDefault();
                     return false;
             }
-            console.log(button);
+            //console.log(button);
             if (button === undefined) {
                 return false;
             } else {
@@ -1132,6 +1151,11 @@ $(function() {
             });
         
             $(this).keyup(function(e) {
+                if (self.jogmove == 2) {
+                    //send jog stop character
+                    OctoPrint.control.sendGcode("CANCELJOG");
+                }
+                self.jogmove = 0;
                 // console.log("keyup");
             });
         });
