@@ -128,7 +128,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.DIAM = float(0)
         self.maxarc = float(0)
         self.arcadd = float(1)
-
+        self.origin = None
         self.do_ovality = False
         self.template = False
         self.cut_depth = float(25)
@@ -820,23 +820,9 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
 
                 if self.do_mod_a:
                     trans_a, deltaZ, safemove = self.get_new_A(trans_z_init, self.queue_A, newcmd)
-                    trans_z = trans_z+deltaZ
-                    '''
-                    if safemove:
-                        #recalculate trans_x and trans_z
-                        safe_Z = 10
-                        trans_x_safe = self.queue_X*math.cos(bangle) + (safe_Z)*math.sin(bangle) - delta_x
-                        trans_z_safe = -self.queue_X*math.sin(bangle) + (0-zmod)*math.cos(bangle) - delta_z
-                        safecmd = []
-                        assembly["X"] = trans_x
-                        assembly["Z"] = trans_z
-                        assembly["A"] = trans_a
-                        assembly["B"] = self.queue_B
-                        safecmd.append(f"G0 X{trans_x_safe:.3f} Z{trans_z_safe:.3f}")
-                        safecmd.append(f"G0 A{trans_a:.3f}")
-                        safecmd.append(self.assemble_command(newcmd, assembly))
-                        return safecmd
-                    '''
+                    #Moves are origin specific
+                    if self.origin == 'LEFT':
+                        trans_z = trans_z+deltaZ
 
             #only need to do this feed adjustment for polar cases ~+/- 85 to 95
             if 85 < abs(self.queue_B) < 95:
@@ -849,7 +835,6 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 else:
                     assembly["F"] = assembly["F"]*feedadjust
 
-            
         assembly["X"] = trans_x
         assembly["Z"] = trans_z
         assembly["A"] = trans_a
@@ -1226,7 +1211,14 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             diam_match = re.search(r"DIAM ([\d.]+)", cmd)
             if diam_match:
                 self.DIAM = float(diam_match.groups(1)[0])
-                self._logger.info('Diameter set: {0}'.format(self.DIAM))
+                self._logger.info(f'Diameter set: {self.DIAM}')
+            return (None, )
+        
+        if cmd.upper().startswith("ORIGIN"):
+            origin_match = re.search(r"ORIGIN ([\s.]+)", cmd)
+            if origin_match:
+                self.origin = origin_match.groups(1)[0]
+                self._logger.info(f'Origin: {self.origin}')
             return (None, )
         
         if cmd.upper() == "RTCM":
@@ -1949,6 +1941,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             self.minZ_inc = float(data["minZ_inc"])
             self.do_ovality = bool(data["ovality"])
             self.ignore_moda = bool(data["ignore_moda"])
+            self.origin = None
             #allow either positive or negative
             if self.cut_depth > 0:
                 self.cut_depth = self.cut_depth * -1
@@ -1980,6 +1973,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             self.minZ_th = float(data["minZ_th"])
             self.minZ_inc = float(data["minZ_inc"])
             self.do_ovality = bool(data["ovality"])
+            self.origin = None
             #allow either positive or negative
             if self.cut_depth > 0:
                 self.cut_depth = self.cut_depth * -1
