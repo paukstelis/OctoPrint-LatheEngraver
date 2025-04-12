@@ -819,10 +819,8 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 trans_z_init = -self.queue_X*math.sin(bangle) + (0 - zmod)*math.cos(bangle) - delta_z
 
                 if self.do_mod_a:
-                    trans_a, deltaZ, safemove = self.get_new_A(trans_z_init, self.queue_A, newcmd)
-                    #Moves are origin specific
-                    if self.origin == 'LEFT':
-                        trans_z = trans_z+deltaZ
+                    trans_a, deltaZ = self.get_new_A(trans_z_init, self.queue_A, newcmd)
+                    trans_z = trans_z+deltaZ
 
             #only need to do this feed adjustment for polar cases ~+/- 85 to 95
             if 85 < abs(self.queue_B) < 95:
@@ -886,50 +884,50 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         new_A = math.degrees(new_A)
         self._logger.debug(f"Pre-modified A: {new_A}")
         newest_A = new_A
-
-        #already in boundary mode:
-        if self.boundary["boundary"]:
-            #direction swap check in the boundary modification block
-            if calc_Y * sb['yval'] < 0 and abs(sb["calc_aval"] - new_A) > 200:
-                self._logger.debug("Boundary direction change, breaking out of boundary")
-                sb["boundary"] = False
-                domod = False
-
-            #get the new value
-            if domod:    
-                newest_A = self.get_boundary_value(new_A)
-
-            #special cases where direction changes happens in a G1 move
-            #This seems to ONLY happen when a path is traced twice in the same direction
-            #it may be possible to remove the whole safemove setup
-            if "G1" in newcmd and abs(sb['mod_aval'] - newest_A) > 179:
-                safemove = True
-        
-        #not in boundary mode
-        if not sb["boundary"] and domod:
-            if abs(sb["calc_aval"] - new_A) > 200:
-                self._logger.debug("BOUNDARY CONDITION - Setting boundary state to active")
-                sb["boundary"] = True
-                sb["start"] = newest_A
-                #don't count G0 moves
-                if "G0" in newcmd:
+        if self.origin == "LEFT":
+            #already in boundary mode:
+            if self.boundary["boundary"]:
+                #direction swap check in the boundary modification block
+                if calc_Y * sb['yval'] < 0 and abs(sb["calc_aval"] - new_A) > 200:
+                    self._logger.debug("Boundary direction change, breaking out of boundary")
                     sb["boundary"] = False
-                else:
+                    domod = False
+
+                #get the new value
+                if domod:    
                     newest_A = self.get_boundary_value(new_A)
 
-            #these set the current direction, but must be checked
-            elif sb["calc_aval"] > newest_A:
-                sb["direction"] = "negative"
-            elif sb["calc_aval"] < newest_A:
-                sb["direction"] = "positive"
+                #special cases where direction changes happens in a G1 move
+                #This seems to ONLY happen when a path is traced twice in the same direction
+                #it may be possible to remove the whole safemove setup
+                if "G1" in newcmd and abs(sb['mod_aval'] - newest_A) > 179:
+                    safemove = True
+        
+            #not in boundary mode
+            if not sb["boundary"] and domod:
+                if abs(sb["calc_aval"] - new_A) > 200:
+                    self._logger.debug("BOUNDARY CONDITION - Setting boundary state to active")
+                    sb["boundary"] = True
+                    sb["start"] = newest_A
+                    #don't count G0 moves
+                    if "G0" in newcmd:
+                        sb["boundary"] = False
+                    else:
+                        newest_A = self.get_boundary_value(new_A)
 
-        #recalc direction
-        sb["calc_aval"] = new_A
-        sb["yval"] = calc_Y
-        sb["mod_aval"] = newest_A
+                #these set the current direction, but must be checked
+                elif sb["calc_aval"] > newest_A:
+                    sb["direction"] = "negative"
+                elif sb["calc_aval"] < newest_A:
+                    sb["direction"] = "positive"
+
+            #recalc direction
+            sb["calc_aval"] = new_A
+            sb["yval"] = calc_Y
+            sb["mod_aval"] = newest_A
 
         self._logger.debug("Calc. Y: {0:.2f}, Distance: {1:.2f}, To Origin: {2:.2f}, Degrees: {3:.2f}, Zval: {4:.2f}".format(calc_Y, distance, to_origin, newest_A, zval))
-        return newest_A, local_distance, safemove
+        return newest_A, local_distance
 
     def get_boundary_value(self, aval):
         sb = self.boundary

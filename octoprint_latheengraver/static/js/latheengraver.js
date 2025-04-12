@@ -149,7 +149,7 @@ $(function() {
         
         self.onBeforePrintStart = function(start_print_command) {
             var laserMode = self.settings.settings.plugins.latheengraver.laserMode();
-            if (laserMode === "true") {
+            if (laserMode == true) {
                 showDialog("#laserStartDialog", function(dialog){
                     OctoPrint.simpleApiCommand("latheengraver", "laserrun", { "sessionId": self.sessionId,
                         "direction": direction,
@@ -487,6 +487,7 @@ $(function() {
             if (self.settings.settings.plugins.latheengraver.hasA() == true) { self.origin_axes.push("A"); }
             if (self.settings.settings.plugins.latheengraver.hasB() == true) { self.origin_axes.push("B"); }
             if (self.settings.settings.plugins.latheengraver.laserMode() == true) { $(".laserbtn").show(); }
+            if (self.settings.settings.plugins.latheengraver.laserMode() == false) { $(".laserbtn").hide(); }
     
             self.notifications.requestData = self.overrideRequestData;
             self.notifications.clear = self.overrideClear;
@@ -776,8 +777,6 @@ $(function() {
                 self.powerRateResetter(undefined);
             }
         };
-
-
 
         self._processControls = function (controls) {
             for (var i = 0; i < controls.length; i++) {
