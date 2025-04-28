@@ -1013,25 +1013,44 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         zmod = modDiam - (modDiam*math.cos(diff))
         return zmod*self.arcadd
 
-    def rotation(self):
-        #set A axis maxfeed rate to account for 30 RPM
-        self._printer.commands(["$113=10800"], force=True)
-        tms = round(time.time() * 1000)
+    def rotation(self, rpm, duration_minutes=None):
+        """
+        Rotates the A-axis at the specified RPM for the given duration in minutes.
+        If duration_minutes is None, the rotation will continue indefinitely until stopped.
+
+        :param rpm: Rotation speed in RPM.
+        :param duration_minutes: Duration of rotation in minutes (optional).
+        """
+        # Set A-axis max feed rate to account for the specified RPM
+        max_feed_rate = rpm * 360  # Assuming 360 degrees per minute
+        #self._printer.commands([f"$113={max_feed_rate}"], force=True)
+
+        # Calculate the duration in milliseconds if provided
+        duration_ms = duration_minutes * 60 * 1000 if duration_minutes is not None else None
+        start_time = round(time.time() * 1000)
+
+        tms = start_time
         self.feedcontrol["current"] = tms
-        #calculate when the next commands should be sent
-        next = (180/(self.rotateFeed*360))*60000
-        self.feedcontrol["next"] = tms+next
+
+        # Calculate when the next commands should be sent
+        next_interval = (180 / (rpm * 360)) * 60000
+        self.feedcontrol["next"] = tms + next_interval
         self._logger.info(self.feedcontrol)
-        self._printer.commands([f"G93 G91 G1 A180 F{self.rotateFeed*2}"], force=True)
-        while self.rotate:
+
+        self._printer.commands([f"G93 G91 G1 A180 F{rpm * 2}"], force=True)
+
+        while self.rotate and (duration_ms is None or (round(time.time() * 1000) - start_time) < duration_ms):
             tms = round(time.time() * 1000)
             if (self.feedcontrol["next"] - tms) < 120:
                 remaining = int(self.feedcontrol["next"] - tms)
-                self._logger.info(f"begin next rotation at {remaining} ms remaining")
-                self._printer.commands([f"G93 G91 G1 A180 F{self.rotateFeed*2}"], force=True)
+                self._logger.debug(f"Begin next rotation at {remaining} ms remaining")
+                self._printer.commands([f"G93 G91 G1 A180 F{rpm * 2}"], force=True)
                 self.feedcontrol["current"] = tms
-                self.feedcontrol["next"] = self.feedcontrol["next"]+((180/(self.rotateFeed*360))*60000)
+                self.feedcontrol["next"] = self.feedcontrol["next"] + next_interval
             time.sleep(0.1)
+        # Reset A position
+        self._printer.commands([f"G92 A0"], force=True)
+        self._logger.debug("Rotation completed or stopped.")
 
     def start_termination(self):
         #need these commands to be queued, so don't use Force
@@ -1103,7 +1122,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         # M140 (set bed temperature)
         # M106 (fan on/off)
         # N -- suggests a line number and we don't roll like that
-        if cmd.upper().startswith(("M108", "M84", "M104", "M140", "M106", "N")):
+        if cmd.upper().startswith(("M108", "M84", "M140", "M106", "N")):
             self._logger.debug("ignoring [%s]", cmd)
             return (None, )
 
@@ -1244,16 +1263,19 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             return (None, )
 
         if cmd.upper().startswith("ROTATE"):
-            speedmatch = re.search(r"ROTATE ([\d.]+)", cmd)
-            if speedmatch:
-                self.rotateFeed = float(speedmatch.groups(1)[0])
-                if self.rotateFeed > 30.0: self.rotateFeed = 30.0
-                if not self.rotateFeed:                
+            match = re.search(r"ROTATE (\d+)(?:\s+(\d+))?", cmd, re.IGNORECASE)
+            if match:
+                rpm = float(match.group(1))
+                if rpm == 0:
+                    # Stop the rotation
                     self.rotate = False
-                    return (None, )
-                if not self.rotate:
+                    self._logger.info("Rotation stopped.")
+                else:
+                    if rpm > 30.0: rpm = 30.0
+                    self.rotateFeed = float(rpm)
+                    duration_minutes = int(match.group(2)) if match.group(2) else None
                     self.rotate = True
-                    self.rotateThread = threading.Thread(target=self.rotation, args=()).start()
+                    self.rotateThread = threading.Thread(target=self.rotation, args=(rpm, duration_minutes)).start()
             return (None, )
         # Grbl 1.1 Realtime Commands (requires Octoprint 1.8.0+)
         # see https://github.com/OctoPrint/OctoPrint/pull/4390
