@@ -2001,22 +2001,6 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             return
         
         if command == "laserrun":
-            self.template = bool(data["template"])
-            self.cut_depth = float(data["cut_depth"])
-            self.track_plunge = bool(data["track_plunge"])
-            self.minZ_th = float(data["minZ_th"])
-            self.minZ_inc = float(data["minZ_inc"])
-            self.do_ovality = bool(data["ovality"])
-            self.origin = None
-            #allow either positive or negative
-            if self.cut_depth > 0:
-                self.cut_depth = self.cut_depth * -1
-            if self.minZ_th > 0:
-                self.minZ_th = self.minZ_th * -1
-            if self.minZ_inc < 0:
-                self.minZ_inc = self.minZ_inc * -1
-            if not self.template:
-                self.cut_depth = "N/A"
             self.do_bangle = False
             self.do_mod_a = False
             self.do_mod_z = False

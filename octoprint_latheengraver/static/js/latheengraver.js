@@ -151,10 +151,7 @@ $(function() {
             var laserMode = self.settings.settings.plugins.latheengraver.laserMode();
             if (laserMode == true) {
                 showDialog("#laserStartDialog", function(dialog){
-                    OctoPrint.simpleApiCommand("latheengraver", "laserrun", { "sessionId": self.sessionId,
-                        "direction": direction,
-                        "distance": distance,
-                        "axis": self.origin_axis() })
+                    OctoPrint.simpleApiCommand("latheengraver", "laserrun", { "sessionId": self.sessionId,})
                     .done(function(response) {
                             console.log("Command succeeded:", response);
                             dialog.modal('hide');
