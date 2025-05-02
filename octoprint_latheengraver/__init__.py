@@ -819,7 +819,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 trans_z_init = -self.queue_X*math.sin(bangle) + (0 - zmod)*math.cos(bangle) - delta_z
 
                 if self.do_mod_a:
-                    trans_a, deltaZ = self.get_new_A(trans_z_init, self.queue_A, newcmd)
+                    trans_a, deltaZ, safemove = self.get_new_A(trans_z_init, self.queue_A, newcmd)
                     trans_z = trans_z+deltaZ
                     if safemove:
                         #recalculate trans_x and trans_z
@@ -934,14 +934,14 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 sb["direction"] = "negative"
             elif sb["calc_aval"] < newest_A:
                 sb["direction"] = "positive"
-
+        
         #recalc direction
         sb["calc_aval"] = new_A
         sb["yval"] = calc_Y
         sb["mod_aval"] = newest_A
 
         self._logger.debug("Calc. Y: {0:.2f}, Distance: {1:.2f}, To Origin: {2:.2f}, Degrees: {3:.2f}, Zval: {4:.2f}".format(calc_Y, distance, to_origin, newest_A, zval))
-        return newest_A, local_distance
+        return newest_A, local_distance, safemove
 
     def get_boundary_value(self, aval):
         sb = self.boundary
