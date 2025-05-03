@@ -42,7 +42,7 @@ import subprocess
 import threading
 
 import re
-import logging
+import logging, logging.handlers
 import json
 import flask
 import yaml
@@ -237,7 +237,8 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
 
         # load up our item/value pairs for errors, warnings, and settings
         _bgs.load_grbl_descriptions(self)
-
+        #Plugin specific logging
+        self._le_logger = None
     # #~~ SettingsPlugin mixin
     def get_settings_defaults(self):
         self._logger.debug("__init__: get_settings_defaults")
@@ -300,7 +301,19 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
 
 
     def on_after_startup(self):
+        from octoprint.logging.handlers import CleaningTimedRotatingFileHandler
         self._logger.debug("__init__: on_after_startup")
+        console_logging_handler = CleaningTimedRotatingFileHandler(
+            self._settings.get_plugin_logfile_path(postfix="console"),
+            when="D",
+            backupCount=3,
+        )
+        console_logging_handler.setFormatter(logging.Formatter("%(asctime)s %(message)s"))
+        console_logging_handler.setLevel(logging.DEBUG)
+        self._le_logger = logging.getLogger("octoprint.plugins.latheengraver.console")
+        self._le_logger.addHandler(console_logging_handler)
+        self._le_logger.setLevel(logging.DEBUG)
+        self._le_logger.propagate = False
         self.datafolder = self.get_plugin_data_folder()
         # establish initial state for printer status
         self._settings.set_boolean(["is_printing"], self._printer.is_printing())
@@ -684,7 +697,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
          
         if cmd.upper() == "RTCM":
             self.RTCM = True
-            self._logger.info("Real-time coordinate modification activated")
+            self._le_logger.info("RTCM activated")
             return cmd
         
         #if terminate has started, we aren't going to queue or send any more gcode, all commands are skipped
@@ -725,11 +738,11 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         for c in gcommands:
             newcmd = newcmd + "{0}".format(c)
             #assembly["COMM"] = "{0} ".format(c)
-        self._logger.debug("new command is: {}".format(newcmd))
-        self._logger.debug(f"Template: {self.template}, Depth: {self.cut_depth}, queue_z: {self.queue_Z}")
+        self._le_logger.info("new command is: {}".format(newcmd))
+        self._le_logger.info(f"Template: {self.template}, Depth: {self.cut_depth}, queue_z: {self.queue_Z}")
         if "G0" in newcmd and self.boundary["boundary"]:
             self.boundary["boundary"] = False
-            self._logger.debug("Boundary cleared")
+            self._le_logger.info("Boundary cleared")
             boundary_clear = True
         #single axis match things first
         if match_z:
@@ -753,7 +766,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 if not self.pauses_started and (self.queue_Z < self.minZ_th) and (self.queue_Z < self.minZ):
                     self.minZ = self.queue_Z
                     self.pauses_started = True
-                    self._logger.info("Zmin now {0}".format(self.minZ))
+                    self._le_logger.info("Zmin now {0}".format(self.minZ))
                     track_plunge = True
         
         if track_plunge:
@@ -830,7 +843,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                         assembly["Z"] = trans_z
                         assembly["A"] = trans_a
                         assembly["B"] = self.queue_B
-                        self._logger.debug("assembly in safe is: {}".format(assembly))
+                        self._le_logger.info("assembly in safe is: {}".format(assembly))
                         safecmd = []
                         safecmd.append(f"G0 X{trans_x_safe:.3f} Z{trans_z_safe:.3f}")
                         safecmd.append(f"G0 A{trans_a:.3f}")
@@ -852,8 +865,8 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         assembly["Z"] = trans_z
         assembly["A"] = trans_a
         assembly["B"] = self.queue_B
-        self._logger.debug("assembly is: {}".format(assembly))
-        self._logger.debug("original values: X{0} Z{1} A{2}".format(self.queue_X, self.queue_Z, self.queue_A))
+        self._le_logger.info("assembly is: {}".format(assembly))
+        self._le_logger.info("original values: X{0} Z{1} A{2}".format(self.queue_X, self.queue_Z, self.queue_A))
         #split up any G0 X,Z, moves from A moves
         if boundary_clear:
             cmds = []
@@ -897,13 +910,13 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
 
         local_distance = distance - radius - zval
         new_A = math.degrees(new_A)
-        self._logger.debug(f"Pre-modified A: {new_A}")
+        self._le_logger.info(f"Pre-modified A: {new_A}")
         newest_A = new_A
         #already in boundary mode:
         if self.boundary["boundary"]:
             #direction swap check in the boundary modification block
             if calc_Y * sb['yval'] < 0 and abs(sb["calc_aval"] - new_A) > 200:
-                self._logger.debug("Boundary direction change, breaking out of boundary")
+                self._le_logger.info("Boundary direction change, breaking out of boundary")
                 sb["boundary"] = False
                 domod = False
 
@@ -920,7 +933,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         #not in boundary mode
         if not sb["boundary"] and domod:
             if abs(sb["calc_aval"] - new_A) > 200:
-                self._logger.debug("BOUNDARY CONDITION - Setting boundary state to active")
+                self._le_logger.info("BOUNDARY CONDITION - Setting boundary state to active")
                 sb["boundary"] = True
                 sb["start"] = newest_A
                 #don't count G0 moves
@@ -940,7 +953,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         sb["yval"] = calc_Y
         sb["mod_aval"] = newest_A
 
-        self._logger.debug("Calc. Y: {0:.2f}, Distance: {1:.2f}, To Origin: {2:.2f}, Degrees: {3:.2f}, Zval: {4:.2f}".format(calc_Y, distance, to_origin, newest_A, zval))
+        self._le_logger.info("Calc. Y: {0:.2f}, Distance: {1:.2f}, To Origin: {2:.2f}, Degrees: {3:.2f}, Zval: {4:.2f}".format(calc_Y, distance, to_origin, newest_A, zval))
         return newest_A, local_distance, safemove
 
     def get_boundary_value(self, aval):
@@ -1043,14 +1056,14 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             tms = round(time.time() * 1000)
             if (self.feedcontrol["next"] - tms) < 120:
                 remaining = int(self.feedcontrol["next"] - tms)
-                self._logger.debug(f"Begin next rotation at {remaining} ms remaining")
+                self._le_logger.info(f"Begin next rotation at {remaining} ms remaining")
                 self._printer.commands([f"G93 G91 G1 A180 F{rpm * 2}"], force=True)
                 self.feedcontrol["current"] = tms
                 self.feedcontrol["next"] = self.feedcontrol["next"] + next_interval
             time.sleep(0.1)
         # Reset A position
         self._printer.commands([f"G92 A0"], force=True)
-        self._logger.debug("Rotation completed or stopped.")
+        self._le_logger.info("Rotation completed or stopped.")
 
     def start_termination(self):
         #need these commands to be queued, so don't use Force
@@ -1146,7 +1159,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             #self._logger.info("Got a laser command")
             lm = int(cmd[4])
             self._settings.set_boolean(["laserMode"], bool(lm) )
-            self._logger.info(f"Setting laserMode to {lm}")
+            self._le_logger.info(f"Setting laserMode to {lm}")
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="laserchange", laser=bool(lm)))
         # M9 (air assist off) processing - work in progress
         if cmd.upper() == "M9":
@@ -1171,23 +1184,23 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             #turn on RTCM as well
             self.RTCM = True
             self.queue_B = self.grblB
-            self._logger.info('do_bangle is: {0} and bangle is: {1}'.format(self.do_bangle, self.grblB))
+            self._le_logger.info('do_bangle is: {0} and bangle is: {1}'.format(self.do_bangle, self.grblB))
             #set B to current position to make sure motor is engaged
             #newcmd = "G90 G1 B{0} F200".format(self.grblB)
             return (None, )
         
         if cmd.upper() == "STOPBANGLE":
             self.do_bangle = False
-            self._logger.info('B angle matrix transformation off')
+            self._le_logger.info('B angle matrix transformation off')
             return (None, )
         
         if cmd.upper() == "TERMINATE":
             self.TERMINATE = True
-            self._logger.info("Termination initiated")
+            self._le_logger.info("Termination initiated")
             return (None, )
         
         if cmd.upper() == "DOMODA":
-            self._logger.info(f'DOMODA hit, ignore_moda is {self.ignore_moda}')
+            self._le_logger.info(f'DOMODA hit, ignore_moda is {self.ignore_moda}')
             if self.ignore_moda:
                 self.do_mod_a = False
                 self._logger.info('Depth modification disabled in run setup')
@@ -1195,12 +1208,12 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             else:
                 self.do_mod_a = True
                 self.RTCM = True
-                self._logger.info('Depth modification enabled')
+                self._le_logger.info('Depth modification enabled')
                 return (None, )
         
         if cmd.upper() == "STOPMODA":
             self.do_mod_a = False
-            self._logger.info('Depth modification inactive')
+            self._le_logger.info('Depth modification inactive')
             return (None, )
         if cmd.upper() == "DOARCMOD":
             self.do_mod_z = True
@@ -1214,7 +1227,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             if minmax_match:
                 self.maxarc = math.radians(float(minmax_match.groups(1)[0]))
                 #self.do_mod_z = True
-                self._logger.info("MAXARC set to {0}".format(self.maxarc))
+                self._le_logger.info("MAXARC set to {0}".format(self.maxarc))
                 if self.maxarc == 0.0:
                     self.do_mod_z = False 
                     self._logger.info("MAXARC inactive")
@@ -1224,7 +1237,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         if cmd.upper().startswith("ARCADD"):
             arcadd_match = re.search(r"ARCADD ([\d.]+)", cmd)
             if arcadd_match:
-                self._logger.info("ARCADD set to {0}".format(self.maxarc))
+                self._le_logger.info("ARCADD set to {0}".format(self.maxarc))
                 self.arcadd = float(arcadd_match.groups(1)[0])
             return (None, )
         
@@ -1235,31 +1248,31 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 self.S_val = float(s_match.groups(1)[0])
             if self.S_val < 1.0:
                 self.S_limit = False
-            self._logger.info('Power limit is: {0}'.format(self.S_val))
+            self._le_logger.info('Power limit is: {0}'.format(self.S_val))
             return (None, )
         
         if cmd.upper().startswith("DIAM"):
             diam_match = re.search(r"DIAM ([\d.]+)", cmd)
             if diam_match:
                 self.DIAM = float(diam_match.groups(1)[0])
-                self._logger.info(f'Diameter set: {self.DIAM}')
+                self._le_logger.info(f'Diameter set: {self.DIAM}')
             return (None, )
         
         if cmd.upper().startswith("ORIGIN"):
             origin_match = re.search(r"ORIGIN ([\w.]+)", cmd)
             if origin_match:
                 self.origin = origin_match.groups(1)[0]
-                self._logger.info(f'Origin: {self.origin}')
+                self._le_logger.info(f'Origin: {self.origin}')
             return (None, )
         
         if cmd.upper() == "RTCM":
             self.RTCM = True
-            self._logger.info("Real-time coordinate modification activated")
+            self._le_logger.info("Real-time coordinate modification activated")
             return (None, )
         
         if cmd.upper() == "STOPRTCM":
             self.RTCM = False
-            self._logger.info("Real-time coordinate modification not activated")
+            self._le_logger.info("Real-time coordinate modification not activated")
             return (None, )
 
         if cmd.upper().startswith("ROTATE"):
@@ -1269,7 +1282,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 if rpm == 0:
                     # Stop the rotation
                     self.rotate = False
-                    self._logger.info("Rotation stopped.")
+                    self._le_logger.info("Rotation stopped.")
                 else:
                     if rpm > 30.0: rpm = 30.0
                     self.rotateFeed = float(rpm)
