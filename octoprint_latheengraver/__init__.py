@@ -354,8 +354,8 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.disableModelSizeDetection = self._settings.get_boolean(["disableModelSizeDetection"])
         self.neverSendChecksum = self._settings.get_boolean(["neverSendChecksum"])
 
-        self.reOrderTabs = self._settings.get_boolean(["reOrderTabs"])
-        self.reOrderSidebar = self._settings.get_boolean(["reOrderSidebar"])
+        #self.reOrderTabs = self._settings.get_boolean(["reOrderTabs"])
+        #self.reOrderSidebar = self._settings.get_boolean(["reOrderSidebar"])
 
         self.overrideM8 = self._settings.get_boolean(["overrideM8"])
         self.overrideM9 = self._settings.get_boolean(["overrideM9"])
@@ -410,11 +410,13 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         orderedTabs = self._settings.global_get(["appearance", "components", "order", "tab"])
         if orderedTabs == None:
             orderedTabs = []
+        self._le_logger.debug("orderedTabs=[{}]".format(orderedTabs))
 
         # initialize config.yaml ordered sidebar list
         orderedSidebar = self._settings.global_get(["appearance", "components", "order", "sidebar"])
         if orderedSidebar == None:
             orderedSidebar = []
+        self._le_logger.debug("orderedSidebar=[{}]".format(orderedSidebar))
 
         # disable the printer safety check plugin
         if self.disablePrinterSafety:
@@ -451,22 +453,18 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 disabledTabs.remove("control")
 
         # ensure i am always the first tab
-        if "plugin_latheengraversupport" in orderedTabs:
-            orderedTabs.remove("plugin_latheengraver")
-        if self.reOrderTabs:
+        if not "plugin_latheengraver" in orderedTabs:
             orderedTabs.insert(0, "plugin_latheengraver")
-
+            self._settings.global_set(["appearance", "components", "order", "tab"], orderedTabs)
         # ensure i am at the top of the sidebar
-        if "plugin_latheengraver" in orderedSidebar:
-            orderedSidebar.remove("plugin_latheengraver")
-        if self.reOrderSidebar:
+        if not "plugin_latheengraver" in orderedSidebar:
             orderedSidebar.insert(0, "plugin_latheengraver")
+            self._settings.global_set(["appearance", "components", "order", "sidebar"], orderedTabs)
 
         self._settings.global_set(["plugins", "_disabled"], disabledPlugins)
         self._settings.global_set(["appearance", "components", "disabled", "tab"], disabledTabs)
-        self._settings.global_set(["appearance", "components", "order", "tab"], orderedTabs)
-        self._settings.global_set(["appearance", "components", "order", "sidebar"], orderedTabs)
-
+        
+        
         # add pretty much all of grbl to long running commands list
         longCmds = self._settings.global_get(["serial", "longRunningCommands"])
         if longCmds == None:
