@@ -120,6 +120,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.do_bangle = False
         self.do_mod_a = False
         self.do_mod_z = False
+        self.single_object = False
         self.bangle = float(0)
         self.boundary = {"boundary" : False, "yval" : 0, "calc_aval": 0, "mod_aval": 0, "direction": "negative", "start": 0.0}
         self.S_limit = False
@@ -825,13 +826,21 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 #this could use some cleanup
                 delta_x = mod_z*math.sin(bangle)
                 delta_z = mod_z*math.cos(bangle)
+                #transformed X coordinated, based on B angle
                 trans_x = self.queue_X*math.cos(bangle) + (self.queue_Z - zmod)*math.sin(bangle) - delta_x
+                self._le_logger.debug(f"qX: {self.queue_X},t_x: {trans_x}, d_x: {delta_x} ba: {bangle} qZ: {self.queue_Z} zmod: {zmod}")
+                #transformed Z coordinated, based on B angle
                 trans_z = -self.queue_X*math.sin(bangle) + (self.queue_Z - zmod)*math.cos(bangle) - delta_z
+                #transformed Z coordinate at Z=0    
                 trans_z_init = -self.queue_X*math.sin(bangle) + (0 - zmod)*math.cos(bangle) - delta_z
-
+                
                 if self.do_mod_a:
                     trans_a, deltaZ, safemove = self.get_new_A(trans_z_init, self.queue_A, newcmd)
+                    self._le_logger.info(f"trans_z and deltaZ: {trans_z}, {deltaZ}")
                     trans_z = trans_z+deltaZ
+                    #recalculate X values
+                    trans_x = (self.queue_X - deltaZ)*math.cos(bangle) + (self.queue_Z - zmod)*math.sin(bangle) - delta_x
+                    self._le_logger.info(f"modified trans_z: {trans_z}")
                     if safemove:
                         #recalculate trans_x and trans_z
                         safe_d = 10
@@ -951,7 +960,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         sb["yval"] = calc_Y
         sb["mod_aval"] = newest_A
 
-        self._le_logger.info("Calc. Y: {0:.2f}, Distance: {1:.2f}, To Origin: {2:.2f}, Degrees: {3:.2f}, Zval: {4:.2f}".format(calc_Y, distance, to_origin, newest_A, zval))
+        self._le_logger.info("Calc. Y: {0:.2f}, Distance: {1:.2f}, To Origin: {2:.2f}, Degrees: {3:.2f}, Zval: {4:.2f}, deltaZ: {5:.2f}".format(calc_Y, distance, to_origin, newest_A, zval, local_distance))
         return newest_A, local_distance, safemove
 
     def get_boundary_value(self, aval):
@@ -1196,7 +1205,10 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             self.TERMINATE = True
             self._le_logger.info("Termination initiated")
             return (None, )
-        
+        if cmd.upper() == "SINGLEOBJECT":
+            self.single_object = True
+            self._le_logger.info("Single object mode")
+            return (None, )
         if cmd.upper() == "DOMODA":
             self._le_logger.info(f'DOMODA hit, ignore_moda is {self.ignore_moda}')
             if self.ignore_moda:
@@ -2003,6 +2015,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             self.queued_command = ""
             self.pauses_started = False
             self.RTCM = False
+            self.single_object = False
             self.queue_X = self.grblX
             self.queue_Z = self.grblZ
             self.queue_A = self.grblA
@@ -2019,6 +2032,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             self.queued_command = ""
             self.pauses_started = False
             self.RTCM = False
+            self.single_object = False
             self.queue_X = self.grblX
             self.queue_Z = self.grblZ
             self.queue_A = self.grblA
