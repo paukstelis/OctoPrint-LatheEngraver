@@ -832,6 +832,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 if self.do_mod_a:
                     trans_a, deltaZ, safemove = self.get_new_A(trans_z_init, self.queue_A, newcmd)
                     trans_z = trans_z+deltaZ
+                    trans_x = (self.queue_X - deltaZ)*math.cos(bangle) + (self.queue_Z - zmod)*math.sin(bangle) - delta_x
                     if safemove:
                         #recalculate trans_x and trans_z
                         safe_d = 10
