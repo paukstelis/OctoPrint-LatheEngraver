@@ -45,7 +45,7 @@ $(function() {
         self.is_operational = ko.observable(false);
         self.isLoading = ko.observable(undefined);
 
-        self.template = ko.observable(true);
+        self.template = ko.observable(false);
         self.cut_depth = ko.observable(15.0);
         self.track_plunge = ko.observable(false);
         self.minZ = ko.observable(0);

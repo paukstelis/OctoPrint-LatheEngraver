@@ -63,6 +63,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.hideTempTab = True
         self.hideControlTab = True
         self.hideGCodeTab = True
+        self.firmwareposition = False
         self.helloCommand = "$$"
         self.statusCommand = "?"
         self.dwellCommand = "G4 P0.001"
@@ -247,6 +248,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             hideTempTab = True,
             hideControlTab = True,
             hideGCodeTab = True,
+            firmwareposition = False,
             hello = "$$",
             statusCommand = "?",
             dwellCommand = "G4 P0.001",
@@ -339,6 +341,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.hideTempTab = self._settings.get_boolean(["hideTempTab"])
         self.hideControlTab = self._settings.get_boolean(["hideControlTab"])
         self.hideGCodeTab = self._settings.get_boolean(["hideGCodeTab"])
+        self.firmwareposition = self._settings.get_boolean(["firmwareposition"])
 
         self.helloCommand = self._settings.get(["hello"])
         self.statusCommand = self._settings.get(["statusCommand"])
@@ -373,6 +376,15 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self._settings.global_set_boolean(["feature", "modelSizeDetection"], not self.disableModelSizeDetection)
         self._settings.global_set_boolean(["feature", "sdSupport"], False)
         self._settings.global_set_boolean(["serial", "neverSendChecksum"], self.neverSendChecksum)
+
+        #adjust report time
+        if self.firmwareposition:
+            self._settings.global_set(["serial", "timeout", "temperature"], 20000)
+            self._settings.global_set(["serial", "timeout", "temperatureTargetSet"], 20000)
+        else:
+            self._settings.global_set(["serial", "timeout", "temperature"], 1)
+            self._settings.global_set(["serial", "timeout", "temperatureTargetSet"], 1)
+            self._printer.commands("$481=0")  
 
         self.autoSleep = self._settings.get_boolean(["autoSleep"])
         self.autoSleepInterval = round(float(self._settings.get(["autoSleepInterval"])))
@@ -677,7 +689,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         if not script_type == "gcode" or not script_name == "beforePrintResumed":
             return None
         positioning = "G91" if self.pausedPositioning == 1 else "G90"
-        prefix = ["~","M3","G4 P5",positioning]
+        prefix = ["M3","G4 P5",positioning]
         if self.queued_command:
             postfix=self.queued_command
             self.queued_command = ""
@@ -828,11 +840,21 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 trans_x = self.queue_X*math.cos(bangle) + (self.queue_Z - zmod)*math.sin(bangle) - delta_x
                 trans_z = -self.queue_X*math.sin(bangle) + (self.queue_Z - zmod)*math.cos(bangle) - delta_z
                 trans_z_init = -self.queue_X*math.sin(bangle) + (0 - zmod)*math.cos(bangle) - delta_z
+                
 
                 if self.do_mod_a:
                     trans_a, deltaZ, safemove = self.get_new_A(trans_z_init, self.queue_A, newcmd)
+                    self._le_logger.debug(f"trans_z: {trans_z}, deltaZ: {deltaZ}")
+                    non_init, thing1, thing2 = self.get_new_A(trans_z, self.queue_A, newcmd)
+                    self._le_logger.debug(f"trans_z_ni: {non_init}, deltaZ: {thing1}")
                     trans_z = trans_z+deltaZ
-                    trans_x = (self.queue_X - deltaZ)*math.cos(bangle) + (self.queue_Z - zmod)*math.sin(bangle) - delta_x
+                    #blah...
+                    if self.origin == "LEFT":
+                        #get X value as distance from origin for calculation
+                        to_origin = self.DIAM/2 - (math.sqrt( (self.queue_X - self.DIAM/2)**2 + self.boundary["yval"]**2 ))
+                        new_x = (to_origin)*math.cos(bangle) + (self.queue_Z - zmod)*math.sin(bangle) - delta_x
+                        self._le_logger.info(f" qX: {self.queue_X:.2f},t_x: {trans_x:.2f}, ba: {bangle:.2f}, qZ: {self.queue_Z:.3f}, xfo: {to_origin:.2f}, new_x: {new_x:.2f}, t_z: {trans_z:.2f}")
+                        trans_x = new_x
                     if safemove:
                         #recalculate trans_x and trans_z
                         safe_d = 10
@@ -1077,6 +1099,9 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
 
         cmd = cmd.lstrip("\r").lstrip("\n").rstrip("\r").rstrip("\n")
 
+        found = False #Use this if we need to report something through the plugin
+        foundZ = False
+        sendreport = False
         # suppress temperature if machine is printing
         if "M105" in cmd.upper() or cmd.startswith(self.statusCommand):
             if (self.disablePolling and self._printer.is_printing()) or len(self.lastRequest) > 0 or self.noStatusRequests:
@@ -1267,11 +1292,13 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         if cmd.upper() == "RTCM":
             self.RTCM = True
             self._le_logger.info("Real-time coordinate modification activated")
+            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", rtcm=self.RTCM,))
             return (None, )
         
         if cmd.upper() == "STOPRTCM":
             self.RTCM = False
             self._le_logger.info("Real-time coordinate modification not activated")
+            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", rtcm=self.RTCM,))
             return (None, )
 
         if cmd.upper().startswith("ROTATE"):
@@ -1451,12 +1478,14 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             # absolute positioning
             self.positioning = 0
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", positioning=self.positioning))
+            found=True
 
         # we need to track relative position mode for "RUN" position updates
         if "G91" in cmd.upper():
             # relative positioning
             self.positioning = 1
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", positioning=self.positioning))
+            found=True
 
         # save our G command for shorthand post processors
         if cmd.upper().startswith("G"):
@@ -1465,10 +1494,6 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         # use our saved G command if our line starts with a coordinate
         if cmd.upper().startswith(("X", "Y", "Z")):
             cmd = self.lastGCommand + " " + cmd
-
-        # keep track of distance traveled
-        found = False
-        foundZ = False
 
         # match = re.search(r"^G([0][0123]|[0123])(\D.*[Xx]|[Xx])\ *(-?[\d.]+).*", command)
         match = re.search(r".*[Xx]\ *(-?[\d.]+).*", cmd)
@@ -1487,10 +1512,11 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         if not match is None:
             self.grblZ = float(match.groups(1)[0]) if self.positioning == 0 else self.grblZ + float(match.groups(1)[0])
             found = True
-            foundZ = True
             #Don't let deep cuts get through
-            if self.template and self.cut_depth and self.queue_Z < self.cut_depth:
-                return (None, )
+            if self.template and self.cut_depth:
+                self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", depthlimit=self.cut_depth))
+                if self.queue_Z < self.cut_depth:
+                    return (None, )
 
         #ADD A and B here
         match = re.search(r".*[Aa]\ *(-?[\d.]+).*", cmd)
@@ -1535,10 +1561,9 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             self.grblPowerLevel = grblPowerLevel
             found = True
 
-        if found:
+        if found and not self.firmwareposition:
             currentTime = int(round(time.time() * 1000))
             if currentTime > self.timeRef + 250:
-                # self._logger.info("x=[{}] y=[{}] z=[{}] f=[{}] s=[{}]".format(self.grblX, self.grblY, self.grblZ, self.grblSpeed, self.grblPowerLevel))
                 self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state",
                                                                                 mode=self.grblMode,
                                                                                 state=self.grblState,
@@ -1555,10 +1580,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                                                                                 depthlimit=self.cut_depth
                                                                                 ))
                 self.timeRef = currentTime
-                # Send to gcode_ripper as well
-                self._plugin_manager.send_plugin_message("gcode_ripper", dict(type="grbl_state",z=self.grblZ))
-
-
+        
         # we only want to track requests we care about
         if cmd.upper() in self.trackedCmds:
             self.lastRequest.append(cmd)
@@ -1732,6 +1754,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             powerRate=["power_rate"],
             cncrun=[],
             laserrun=[],
+            giveposition=[]
         )
 
     def on_api_command(self, command, data):
@@ -1952,7 +1975,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             program = -53 + program
 
             if axis == "X":
-                self._printer.commands("G91 G10 P{} L20 X0".format(program))
+                self._printer.commands(["G91 G10 P{} L20 X0".format(program),"G92 X0"])
             elif axis == "Y":
                 self._printer.commands("G91 G10 P{} L20 Y0".format(program))
             elif axis == "Z":
@@ -1960,15 +1983,11 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             elif axis == "XZ":
                 self._printer.commands("G91 G10 P{} L20 X0 Z0".format(program))
             elif axis == "XZA":
-                self._printer.commands("G91 G10 P{} L20 X0 Z0 A0".format(program))
+                self._printer.commands(["G91 G10 P{} L20 X0 Z0 A0".format(program),"G92 A0"])
             elif axis == "A" and hasA:
-                self._printer.commands("G91 G10 P{} L20 A0".format(program))
+                self._printer.commands(["G91 G10 P{} L20 A0".format(program),"G92 A0"])
             elif axis == "B" and hasB:
-                self._printer.commands("G91 G10 P{} L20 B0".format(program))
-            elif axis == "A" and hasA:
-                self._printer.commands("G91 G10 P{} L20 A0".format(program))
-            elif axis == "B" and hasB:
-                self._printer.commands("G91 G10 P{} L20 B0".format(program))
+                self._printer.commands(["G91 G10 P{} L20 B0".format(program),"G92 B0"])
             else:
                 self._printer.commands("G91 G10 P{0} L20 X0 Y0 Z0 {1}".format(program, extra_axes))
 

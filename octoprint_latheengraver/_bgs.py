@@ -334,9 +334,9 @@ def on_event(_plugin, event, payload):
         _plugin._logger.debug("cancelling job")
 
         if "HOLD" in _plugin.grblState.upper():
-            _plugin._printer.commands(["~", "M5"], force=True)
+            _plugin._printer.commands(["M999","M5"], force=True)
         else:
-            _plugin._printer.commands(["M5"], force=True)
+            _plugin._printer.commands(["~","M5"], force=True)
 
     # Print Pausing
     if payload is not None and payload.get("state_id") == "PAUSING":
