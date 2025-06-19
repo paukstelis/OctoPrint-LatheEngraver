@@ -844,17 +844,9 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
 
                 if self.do_mod_a:
                     trans_a, deltaZ, safemove = self.get_new_A(trans_z_init, self.queue_A, newcmd)
-                    self._le_logger.debug(f"trans_z: {trans_z}, deltaZ: {deltaZ}")
-                    non_init, thing1, thing2 = self.get_new_A(trans_z, self.queue_A, newcmd)
-                    self._le_logger.debug(f"trans_z_ni: {non_init}, deltaZ: {thing1}")
                     trans_z = trans_z+deltaZ
-                    #blah...
-                    if self.origin == "LEFT":
-                        #get X value as distance from origin for calculation
-                        to_origin = self.DIAM/2 - (math.sqrt( (self.queue_X - self.DIAM/2)**2 + self.boundary["yval"]**2 ))
-                        new_x = (to_origin)*math.cos(bangle) + (self.queue_Z - zmod)*math.sin(bangle) - delta_x
-                        self._le_logger.info(f" qX: {self.queue_X:.2f},t_x: {trans_x:.2f}, ba: {bangle:.2f}, qZ: {self.queue_Z:.3f}, xfo: {to_origin:.2f}, new_x: {new_x:.2f}, t_z: {trans_z:.2f}")
-                        trans_x = new_x
+                    trans_x = (self.queue_X - deltaZ)*math.cos(bangle) + (self.queue_Z - zmod)*math.sin(bangle) - delta_x
+
                     if safemove:
                         #recalculate trans_x and trans_z
                         safe_d = 10
