@@ -483,11 +483,12 @@ def process_grbl_status_msg(_plugin, msg):
                 power=_plugin.grblPowerLevel,
                 coord=_plugin.grblCoordinateSystem,
                 coolant=_plugin.coolant,
-                positioning=_plugin.positioning)
+                positioning=_plugin.positioning,
+                bf=_plugin.grblBuffer)
 
     _plugin._plugin_manager.send_plugin_message(_plugin._identifier, data)
     _plugin.send_position_event(data)
-    
+
     # odd edge case where a machine could be asleep or holding while connecting
     # TODO: this may no longer be valid given refactoring
     if not _plugin._printer.is_operational() and _plugin.grblState.upper() in ("SLEEP", "HOLD:0", "HOLD:1", "DOOR:0", "DOOR:1"):
