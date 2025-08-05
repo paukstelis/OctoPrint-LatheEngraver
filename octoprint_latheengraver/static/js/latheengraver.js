@@ -664,9 +664,9 @@ $(function() {
           if (self.is_operational() && !self.is_printing()) {
             if (self.mode() == "WPos") {
             //changes for grblhal
-              OctoPrint.control.sendGcode(["$10=157", "?", "$$"]);
+              OctoPrint.control.sendGcode(["$10=25", "?", "$$"]);
             } else {
-              OctoPrint.control.sendGcode(["$10=156", "?", "$$"]);
+              OctoPrint.control.sendGcode(["$10=26", "?", "$$"]);
             }
           }
         }

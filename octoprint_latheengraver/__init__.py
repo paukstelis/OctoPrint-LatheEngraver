@@ -95,6 +95,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.grblZ = float(0)
         self.grblA = float(0)
         self.grblB = float(0)
+        self.grblBuffer = int(0)
         self.offsets = []
         self.queue_Z = float(0)
         self.queue_X = float(0)
@@ -681,7 +682,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
     def get_extension_tree(self, *args, **kwargs):
         return dict(
                 model=dict(
-        		grbl_gcode=["gc", "nc"]
+                grbl_gcode=["gc", "nc"]
                 )
         )
 
@@ -1293,6 +1294,12 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             self._le_logger.info("Real-time coordinate modification not activated")
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", rtcm=self.RTCM,))
             return (None, )
+
+        if cmd.upper() == "RESETA":
+            self._le_logger.info("A-axis reset")
+            newvalue = self.grblA % 360
+            newcmd = f"G92 A{newvalue:0.3f}"
+            return (newcmd, )
 
         if cmd.upper().startswith("ROTATE"):
             match = re.search(r"ROTATE (\d+)(?:\s+(\d+))?", cmd, re.IGNORECASE)
@@ -2042,7 +2049,15 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             self.queue_S = 0.0
             self.queue_F = 0.0
             return
+        
+    def send_position_event(self, data):
+        event = Events.PLUGIN_LATHEENGRAVER_SEND_POSITION
+        custom_payload = data
+        self._event_bus.fire(event, payload=custom_payload)
 
+    def register_custom_events(*args, **kwargs):
+        return ["send_position"]
+    
     def on_wizard_finish(self, handled):
         self._logger.debug("__init__: on_wizard_finish handled=[{}]".format(handled))
         if handled:
@@ -2127,4 +2142,5 @@ def __plugin_load__():
          "octoprint.comm.protocol.gcode.sending": __plugin_implementation__.hook_gcode_sending,
          "octoprint.comm.protocol.gcode.received": __plugin_implementation__.hook_gcode_received,
          "octoprint.comm.protocol.gcode.queuing": __plugin_implementation__.hook_gcode_queuing,
+         "octoprint.events.register_custom_events": __plugin_implementation__.register_custom_events,
          "octoprint.filemanager.extension_tree": __plugin_implementation__.get_extension_tree}
