@@ -63,7 +63,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.hideTempTab = True
         self.hideControlTab = True
         self.hideGCodeTab = True
-        self.firmwareposition = False
+        self.firmwareposition = True
         self.helloCommand = "$$"
         self.statusCommand = "?"
         self.dwellCommand = "G4 P0.001"
@@ -249,7 +249,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             hideTempTab = True,
             hideControlTab = True,
             hideGCodeTab = True,
-            firmwareposition = False,
+            firmwareposition = True,
             hello = "$$",
             statusCommand = "?",
             dwellCommand = "G4 P0.001",
@@ -1669,20 +1669,6 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         if not line.lstrip().lower().startswith("ok"):
             return
 
-        # I've never seen these
-        # if line.startswith('{'):
-        #      # Regular ACKs
-        #      # {0/0}ok
-        #      # {5/16}ok
-        #     return 'ok '
-        # elif '{' in line:
-        #      # Ack with return data
-        #      # F300S1000{0/0}ok
-        #     (before, _, _) = line.partition('{')
-        #     return 'ok ' + before
-        # else:
-
-        # all that is left is an acknowledgement
         lastResponse = self.lastResponse.lstrip("\r").lstrip("\n").rstrip("\r").rstrip("\n")
 
         if len(self.lastRequest) > 0 and len(lastResponse) > 0:
