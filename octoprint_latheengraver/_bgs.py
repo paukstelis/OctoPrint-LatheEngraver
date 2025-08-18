@@ -466,20 +466,28 @@ def process_grbl_status_msg(_plugin, msg):
         _plugin.grblSpeed = round(float(match.groups(1)[0]))
         _plugin.grblPowerLevel = float(match.groups(1)[1])
 
-    _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_state",
-                                                                    mode=_plugin.grblMode,
-                                                                    state=_plugin.grblState,
-                                                                    x=_plugin.grblX,
-                                                                    y=_plugin.grblY,
-                                                                    z=_plugin.grblZ,
-                                                                    a=_plugin.grblA,
-                                                                    b=_plugin.grblB,
-                                                                    pins=_plugin.grblActivePins,
-                                                                    speed=_plugin.grblSpeed,
-                                                                    power=_plugin.grblPowerLevel,
-                                                                    coord=_plugin.grblCoordinateSystem,
-                                                                    coolant=_plugin.coolant,
-                                                                    positioning=_plugin.positioning))
+    match = re.search(r'.*\|Bf:(-?[\d\.]+),(-?[\d\.]+)', msg)
+    if not match is None:
+        _plugin.grblBuffer = int(match.groups(1)[0])
+
+    data = dict(type="grbl_state",
+                mode=_plugin.grblMode,
+                state=_plugin.grblState,
+                x=_plugin.grblX,
+                y=_plugin.grblY,
+                z=_plugin.grblZ,
+                a=_plugin.grblA,
+                b=_plugin.grblB,
+                pins=_plugin.grblActivePins,
+                speed=_plugin.grblSpeed,
+                power=_plugin.grblPowerLevel,
+                coord=_plugin.grblCoordinateSystem,
+                coolant=_plugin.coolant,
+                positioning=_plugin.positioning,
+                bf=_plugin.grblBuffer)
+
+    _plugin._plugin_manager.send_plugin_message(_plugin._identifier, data)
+    _plugin.send_position_event(data)
 
     # odd edge case where a machine could be asleep or holding while connecting
     # TODO: this may no longer be valid given refactoring

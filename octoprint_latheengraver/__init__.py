@@ -63,7 +63,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.hideTempTab = True
         self.hideControlTab = True
         self.hideGCodeTab = True
-        self.firmwareposition = False
+        self.firmwareposition = True
         self.helloCommand = "$$"
         self.statusCommand = "?"
         self.dwellCommand = "G4 P0.001"
@@ -95,6 +95,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.grblZ = float(0)
         self.grblA = float(0)
         self.grblB = float(0)
+        self.grblBuffer = int(0)
         self.offsets = []
         self.queue_Z = float(0)
         self.queue_X = float(0)
@@ -248,7 +249,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             hideTempTab = True,
             hideControlTab = True,
             hideGCodeTab = True,
-            firmwareposition = False,
+            firmwareposition = True,
             hello = "$$",
             statusCommand = "?",
             dwellCommand = "G4 P0.001",
@@ -681,7 +682,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
     def get_extension_tree(self, *args, **kwargs):
         return dict(
                 model=dict(
-        		grbl_gcode=["gc", "nc"]
+                grbl_gcode=["gc", "nc"]
                 )
         )
 
@@ -1294,6 +1295,12 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", rtcm=self.RTCM,))
             return (None, )
 
+        if cmd.upper() == "RESETA":
+            self._le_logger.info("A-axis reset")
+            newvalue = self.grblA % 360
+            newcmd = f"G92 A{newvalue:0.3f}"
+            return (newcmd, )
+
         if cmd.upper().startswith("ROTATE"):
             match = re.search(r"ROTATE (\d+)(?:\s+(\d+))?", cmd, re.IGNORECASE)
             if match:
@@ -1662,20 +1669,6 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         if not line.lstrip().lower().startswith("ok"):
             return
 
-        # I've never seen these
-        # if line.startswith('{'):
-        #      # Regular ACKs
-        #      # {0/0}ok
-        #      # {5/16}ok
-        #     return 'ok '
-        # elif '{' in line:
-        #      # Ack with return data
-        #      # F300S1000{0/0}ok
-        #     (before, _, _) = line.partition('{')
-        #     return 'ok ' + before
-        # else:
-
-        # all that is left is an acknowledgement
         lastResponse = self.lastResponse.lstrip("\r").lstrip("\n").rstrip("\r").rstrip("\n")
 
         if len(self.lastRequest) > 0 and len(lastResponse) > 0:
@@ -2042,7 +2035,15 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             self.queue_S = 0.0
             self.queue_F = 0.0
             return
+        
+    def send_position_event(self, data):
+        event = Events.PLUGIN_LATHEENGRAVER_SEND_POSITION
+        custom_payload = data
+        self._event_bus.fire(event, payload=custom_payload)
 
+    def register_custom_events(*args, **kwargs):
+        return ["send_position"]
+    
     def on_wizard_finish(self, handled):
         self._logger.debug("__init__: on_wizard_finish handled=[{}]".format(handled))
         if handled:
@@ -2127,4 +2128,5 @@ def __plugin_load__():
          "octoprint.comm.protocol.gcode.sending": __plugin_implementation__.hook_gcode_sending,
          "octoprint.comm.protocol.gcode.received": __plugin_implementation__.hook_gcode_received,
          "octoprint.comm.protocol.gcode.queuing": __plugin_implementation__.hook_gcode_queuing,
+         "octoprint.events.register_custom_events": __plugin_implementation__.register_custom_events,
          "octoprint.filemanager.extension_tree": __plugin_implementation__.get_extension_tree}

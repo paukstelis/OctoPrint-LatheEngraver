@@ -285,7 +285,7 @@
          <div>
             <label for="cut_input">Nominal cut depth (mm):
             <input id="cut_input" type="number" step="any" data-bind="value: cut_depth">
-            <i class="icon icon-info-sign" title="Run will end after Z value reaches this depth." data-toggle="tooltip"></i>
+            <i class="icon icon-info-sign" title="Run will end after Z value reaches this depth. NOTE: Only use for individual objects. Run will terminate the first time depth limit is reached." data-toggle="tooltip"></i>
             </label>       
          </div>
          <div>
@@ -311,12 +311,6 @@
             <label for="incz">Pause increments (mm):
             <input id="incz" type="number" step="any" data-bind="value: minZ_inc">
             <i class="icon icon-info-sign" title="After reaching pause depth, pauses will continue at these increments. 0 value will pause at every plunge." data-toggle="tooltip"></i>
-            </label>
-         </div>
-         <div>
-            <label for="oval">Enable ovality correction:
-               <input id="oval" type="checkbox" checked data-bind="checked: ovality">
-               <i class="icon icon-info-sign" title="Corrects depth-of-cut based on A-axis angles. Requires A-axis probing or zone data with established zero position." data-toggle="tooltip"></i>
             </label>
          </div>
          <div>
