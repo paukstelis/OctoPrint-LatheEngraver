@@ -702,10 +702,9 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
     # #-- gcode queuing hook
     #these need to be in queuing to extend
     def hook_gcode_queuing(self, comm_instance, phase, cmd, cmd_type, gcode, tags, *args, **kwargs):
-        
         #only alter commands if we are running a job
         if not self._printer.is_printing():
-             return cmd
+            return cmd
          
         if cmd.upper() == "RTCM":
             self.RTCM = True
@@ -1083,7 +1082,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
     def start_termination(self):
         #need these commands to be queued, so don't use Force
         self._printer.commands(["G0 Z5", "M5", "M30", "TERMINATE"], force=True)
-    
+
     # #-- gcode sending hook
     def hook_gcode_sending(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
         self._logger.debug("__init__: hook_gcode_sending phase=[{}] cmd=[{}] cmd_type=[{}] gcode=[{}]".format(phase, cmd, cmd_type, gcode))

@@ -429,7 +429,6 @@ def toggle_weak(_plugin):
 
     return res
 
-
 def process_grbl_status_msg(_plugin, msg):
     #need to redefine much of this if we have more axes
     hasA = _plugin._settings.get(["hasA"])
@@ -438,7 +437,8 @@ def process_grbl_status_msg(_plugin, msg):
     #response = 'X:{1} Y:{2} Z:{3} E:0 {original}'.format(*match.groups(), original=msg)
     response = 'X:{1} Y:{2} Z:{3} E:0 '.format(*match.groups())
     _plugin.grblMode = "MPos" if "MPos" in msg else "WPos" if "WPos" in msg else "N/A"
-    _plugin.grblState = str(match.groups(1)[0])
+    newState = str(match.groups(1)[0])
+    _plugin.grblState = newState
     _plugin.grblX = float(match.groups(1)[1])
     _plugin.grblY = float(match.groups(1)[2])
     _plugin.grblZ = float(match.groups(1)[3])

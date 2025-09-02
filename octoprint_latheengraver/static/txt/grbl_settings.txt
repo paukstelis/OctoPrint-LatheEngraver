@@ -39,6 +39,8 @@
 38 Spindle encoder pulses per revolution
 39 Enable printable realtime command characters
 40 Enable soft limits for jogging
+41 Enable Parking
+42 Axis to Park
 43 Number of homing locate cycles
 44 Homing Cycle 0
 45 Homing Cycle 1
@@ -52,6 +54,10 @@
 53 Jogging step distance in mm
 54 Jogging slow distance in mm
 55 Jogging fast distance in mm
+56 Parking pull out increment
+57 Parking pull out rate
+58 Parking target (mm)
+59 Parking fast rate
 60 Restore default overrides when program ends
 61 Ignore safety door signal when idle
 62 Enable sleep function
@@ -106,24 +112,36 @@
 143 $A/Current/Run
 144 $B/Current/Run
 145 $C/Current/Run
-150 $X/Current/Hold
-151 $Y/Current/Hold
-152 $Z/Current/Hold
-153 $A/Current/Hold
-154 $B/Current/Hold
-155 $C/Current/Hold
-160 $X/Microsteps
-161 $Y/Microsteps
-162 $Z/Microsteps
-163 $A/Microsteps
-164 $B/Microsteps
-165 $C/Microsteps
-170 $X/StallGuard
-171 $Y/StallGuard
-172 $Z/StallGuard
-173 $A/StallGuard
-174 $B/StallGuard
-175 $C/StallGuard
+150 $X/Microsteps
+151 $Y/Microsteps
+152 $Z/Microsteps
+153 $A/Microsteps
+154 $B/Microsteps
+155 $C/Microsteps
+160 $X/Backlash correction
+161 $Y/Backlash correction
+162 $Z/Backlash correction
+163 $A/Backlash correction
+164 $B/Backlash correction
+165 $C/Backlash correction
+200 $X/StallGuard
+201 $Y/StallGuard
+202 $Z/StallGuard
+203 $A/StallGuard
+204 $B/StallGuard
+205 $C/StallGuard
+210 $X/Current/Hold%
+211 $Y/Current/Hold%
+212 $Z/Current/Hold%
+213 $A/Current/Hold%
+214 $B/Current/Hold%
+215 $C/Current/Hold%
+220 $X/Jerk
+221 $Y/Jerk
+222 $Z/Jerk
+223 $A/Jerk
+224 $B/Jerk
+225 $C/Jerk
 302 Interface gateway address, default value driver dependent
 303 Interface netmask, default value driver dependent
 304 Interface netmask, default value 255.255.255.0
@@ -147,4 +165,10 @@
 342 Probing distance, default 30 mm
 343 Probing slow feed rate, default 25 mm/min
 344 Probing seek feed rate, default 200 mm/min
+345 Tool change pull off rate
+346 Tool change options
+384 G92 persistence
+398 Planner block size
+481 Auto-report interval (ms)
+485 Tool persistence 
 
