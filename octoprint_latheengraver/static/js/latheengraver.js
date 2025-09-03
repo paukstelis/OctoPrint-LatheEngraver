@@ -638,6 +638,17 @@ $(function() {
                 return
             }
 
+            if (plugin == 'latheengraver' && data.type == 'clear_all') {
+                // Remove all PNotify notifications from the DOM
+                $(".ui-pnotify").remove();
+                // Optionally, also clear PNotify's internal queue if needed
+                if (typeof PNotify !== "undefined" && typeof PNotify.removeAll === "function") {
+                    PNotify.removeAll();
+                }
+                return;
+            }
+
+
             if (plugin == 'latheengraver' && data.type == 'restart_required') {
                 new PNotify({
                     title: "Restart Required",
@@ -655,8 +666,9 @@ $(function() {
                 return
             }
 
-            if (plugin == "latheengraver" && data.type == "notification") {
-                self.notifications.onDataUpdaterPluginMessage("action_command_notification", {message: data.message})                    
+            if (plugin == "latheengraver" && data.type == "notification") { 
+                self.notifications.onDataUpdaterPluginMessage("action_command_notification", {message: data.message});
+                                   
             }
         }
 

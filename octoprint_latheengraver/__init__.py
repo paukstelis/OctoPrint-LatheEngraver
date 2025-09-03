@@ -1860,6 +1860,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         if command == "clearNotifications":
             self.notifications = []
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="notification", message=""))
+            self._logger.info("Sent clearnotifications")
             return 
 
         # catch-all (TODO: should revisit state management) for validating printer State
