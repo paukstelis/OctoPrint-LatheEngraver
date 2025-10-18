@@ -99,3 +99,10 @@ _:-ms-lang(x), _:-webkit-full-screen, .fullscreen img {
 	top: 0;
 	left: 0;
 }
+
+#infopanel.latheengraver-focus {
+    box-shadow: 0 0 8px 3px #33ff33;
+    border-radius: 6px;
+    outline: 2px solid #33ff33;
+    transition: box-shadow 0.2s, outline 0.2s;
+}
