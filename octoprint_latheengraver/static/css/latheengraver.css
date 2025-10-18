@@ -1,4 +1,3 @@
-
 #tab_plugin_latheengraver {
 	position: relative;
 	width: 100%;
@@ -101,8 +100,9 @@ _:-ms-lang(x), _:-webkit-full-screen, .fullscreen img {
 }
 
 #infopanel.latheengraver-focus {
-    box-shadow: 0 0 8px 3px #33ff33;
-    border-radius: 6px;
-    outline: 2px solid #33ff33;
-    transition: box-shadow 0.2s, outline 0.2s;
+    box-shadow: none !important;
+    outline: none;
+    border: 3px solid #33cc33 !important;
+    border-radius: 10px;
+    transition: border-color 0.2s;
 }
