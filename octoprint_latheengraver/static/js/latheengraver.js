@@ -1148,7 +1148,27 @@ $(function() {
             }
         };
 
+        function updateLatheengraverHomeButtonFocus() {
+            if (
+                OctoPrint.coreui.selectedTab != undefined &&
+                OctoPrint.coreui.selectedTab == "#tab_plugin_latheengraver" &&
+                OctoPrint.coreui.browserTabVisible &&
+                $(":focus").length == 0
+            ) {
+                $("#infopanel").addClass("latheengraver-focus");
+            } else {
+                $("#infopanel").removeClass("latheengraver-focus");
+            }
+
+        }
+
+
         $(document).ready(function() {
+            updateLatheengraverHomeButtonFocus();
+            $(window).on("focus blur", updateLatheengraverHomeButtonFocus);
+            $(document).on("focusin focusout", updateLatheengraverHomeButtonFocus);
+            $(document).on("octoprint.tabchange", updateLatheengraverHomeButtonFocus);
+
             $(this).keydown(function(e) {
                 if (OctoPrint.coreui.selectedTab != undefined &&
                         OctoPrint.coreui.selectedTab == "#tab_plugin_latheengraver" &&

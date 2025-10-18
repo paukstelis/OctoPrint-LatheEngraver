@@ -1770,6 +1770,14 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 self._printer.commands("$X")
             return
 
+        if command == "hold":
+            self._printer.commands("!", force=True)
+            return
+        
+        if command == "resume":
+            self._printer.commands("~", force=True)
+            return
+
         if command == "reset":
             # force a fake ack in case something is holding up the send queue
             # self._printer.fake_ack()

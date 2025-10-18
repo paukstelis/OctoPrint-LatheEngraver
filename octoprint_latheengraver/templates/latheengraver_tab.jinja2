@@ -29,10 +29,10 @@
 
 <div id="control_panel" style="text-align: left; overflow: hidden; margin: 20px 0px 5px 0px;" valign="top">
 
-     <span style="display: inline-block; border: 1px solid; border-radius: 10px; margin: 0px 0px 20px 0px; valign: top; ">
+     <span id="infopanel" style="display: inline-block; border: 3px solid; border-radius: 10px; margin: 0px 0px 20px 0px; valign: top; ">
       <table align="center" style="margin: 0 auto; margin: 0px 0px 5px 0px;">
         <tr style="cursor: pointer;" data-bind="click: function() { modeClick(); }">
-           <td style="padding: 5px 10px 0px 5px;" align="right" valign="middle">Mode</td>
+           <td style="padding: 5px S10px 0px 5px;" align="right" valign="middle">Mode</td>
            <td style="padding: 5px 5px 0px 5px;" align="right" valign="middle" width="70px"><strong data-bind="text: mode()"></strong></td>
         </tr>
         <tr>
@@ -111,7 +111,7 @@
             <td style="padding: 0px 0px 10px 0px; transform: translate(-5px);" align="left">
                <div style="display: flex; flex-direction: column; align-items: flex-start;">
                   <label style="margin-bottom: 4px; width: 40px; text-align: center;">Zero</label>
-                  <button title="Zero Selected Axes" class="btn box" style="border: 1px solid; width: 40px; height: 40px;" 
+                  <button title="Zero Selected Axes" class="btn box" style="border: 1px solid; width: 40px; height: 40px; z-index: 50;" 
                      data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() { sendCommand('origin') }">
                      <i class="fa fa-crosshairs"></i>
                   </button>
@@ -242,6 +242,7 @@
       <br>
       <br>
       <button class="btn" style="width: 140px; border: 1px solid;" data-bind="enable: is_operational() && !is_printing() && state() == 'Alarm', click: function() { sendCommand('unlock') }">Unlock</button>
+      <br>
       <br>
    </span>
    <span style="display: inline-block; margin: 0px 10px 0px 10px; vertical-align: middle;">&nbsp;</span>
