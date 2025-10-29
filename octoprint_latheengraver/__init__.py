@@ -1178,6 +1178,8 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             self._settings.set_boolean(["laserMode"], bool(lm) )
             self._le_logger.info(f"Setting laserMode to {lm}")
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="laserchange", laser=bool(lm)))
+            self.send_laser_event( dict(laser_mode=lm) )
+
         # M9 (air assist off) processing - work in progress
         if cmd.upper() == "M9":
             self.coolant = cmd.upper()
@@ -1315,6 +1317,31 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                     self.rotate = True
                     self.rotateThread = threading.Thread(target=self.rotation, args=(rpm, duration_minutes)).start()
             return (None, )
+        
+        if cmd.upper() == "STARTCAP":
+            #this will capture the starting position for a particular run
+            self.start_pos = {"X": self.grblX, "Z": self.grblZ, "A": self.grblA, "B": self.grblB}
+            return (None, )
+        
+        if "SC_" in cmd.upper():
+            def _replace_sc(match):
+                axis = match.group(1).upper()
+                if not hasattr(self, "start_pos") or not self.start_pos:
+                    # no captured start position available yet - leave token unchanged
+                    self._le_logger.debug("SC_ token found but start_pos not set")
+                    return match.group(0)
+                val = self.start_pos.get(axis)
+                if val is None:
+                    self._le_logger.debug(f"SC_ token for unknown axis '{axis}' - leaving unchanged")
+                    return match.group(0)
+                # return axis with numeric value formatted to 3 decimals (matches assemble_command formatting)
+                return f"{axis}{float(val):.3f}"
+
+            new_cmd = re.sub(r"SC_([XZAB])", _replace_sc, cmd, flags=re.IGNORECASE)
+            if new_cmd != cmd:
+                self._le_logger.info(f"Replaced SC_ tokens: '{cmd}' -> '{new_cmd}'")
+            cmd = new_cmd
+
         # Grbl 1.1 Realtime Commands (requires Octoprint 1.8.0+)
         # see https://github.com/OctoPrint/OctoPrint/pull/4390
 
@@ -2049,8 +2076,14 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         custom_payload = data
         self._event_bus.fire(event, payload=custom_payload)
 
+    def send_laser_event(self, data):
+        event = Events.PLUGIN_LATHEENGRAVER_SEND_LASER
+        custom_payload = data
+        self._logger.info(custom_payload)
+        self._event_bus.fire(event, payload=custom_payload)
+
     def register_custom_events(*args, **kwargs):
-        return ["send_position"]
+        return ["send_position","send_laser"]
     
     def on_wizard_finish(self, handled):
         self._logger.debug("__init__: on_wizard_finish handled=[{}]".format(handled))

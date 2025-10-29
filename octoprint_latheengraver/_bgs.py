@@ -296,9 +296,7 @@ def on_event(_plugin, event, payload):
             _plugin._logger.debug("cancelling job,state is: {0}".format(_plugin.grblState))
             _plugin._printer.cancel_print()
             return
-
-
-
+        
         _plugin.grblState = "Run"
         _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_state", state="Run"))
 
@@ -903,6 +901,8 @@ def is_laser_mode(_plugin):
     try:
         if not is_grbl_fluidnc(_plugin):
             _plugin._logger.debug("_bgs: is_laser_mode={}".format(int(float(_plugin.grblSettings.get(32)[0])) != 0))
+            lm = int(float(_plugin.grblSettings.get(32)[0]))
+            _plugin.send_laser_event(dict(laser_mode=lm))
             return int(float(_plugin.grblSettings.get(32)[0])) != 0
         else:
             return not (_plugin.fluidYaml and _plugin.fluidYaml.get("laser") is None and _plugin.fluidYaml.get("Laser") is None and _plugin.fluidYaml.get("LASER") is None)
