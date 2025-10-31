@@ -113,6 +113,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.match_z = re.compile(r".*[Zz]\ *(-?[\d.]+).*")
         self.match_a = re.compile(r".*[Aa]\ *(-?[\d.]+).*")
         self.match_b = re.compile(r".*[Bb]\ *(-?[\d.]+).*")
+        self.match_c = re.compile(r".*[Cc]\ *(-?[\d.]+).*")
         self.match_f = re.compile(r".*[Ff]\ *(-?[\d.]+).*")
         self.match_s = re.compile(r".*[Ss]\ *(-?[\d.]+).*")
 
@@ -122,6 +123,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.do_bangle = False
         self.do_mod_a = False
         self.do_mod_z = False
+        self.cornlathe = False
         self.bangle = float(0)
         self.boundary = {"boundary" : False, "yval" : 0, "calc_aval": 0, "mod_aval": 0, "direction": "negative", "start": 0.0}
         self.S_limit = False
@@ -735,6 +737,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         match_z = self.match_z.match(cmd)
         match_a = self.match_a.match(cmd)
         match_b = self.match_b.match(cmd)
+        match_c = self.match_c.match(cmd)
         match_f = self.match_f.match(cmd)
         match_s = self.match_s.match(cmd)
         #Have to track position resets...hmmm
@@ -890,6 +893,12 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             assembly["A"] = aval
             cmds.append(self.assemble_command(newcmd, assembly))
             return cmds
+        
+        if self.cornlathe:
+            assembly["X"], assembly["Z"] = assembly["Z"], assembly["X"]
+            if match_c:
+                assembly["A"] = float(match_c.groups(1)[0])
+
         cmd = self.assemble_command(newcmd, assembly)
         return cmd
 
@@ -1317,6 +1326,10 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                     self.rotate = True
                     self.rotateThread = threading.Thread(target=self.rotation, args=(rpm, duration_minutes)).start()
             return (None, )
+        
+        if cmd.upper() == "CORNLATHE":
+            self.cornlathe = True
+            return (None,)
         
         if cmd.upper() == "STARTCAP":
             #this will capture the starting position for a particular run
@@ -2053,6 +2066,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             self.queue_B = self.grblB
             self.queue_S = 0.0
             self.queue_F = 0.0
+            self.cornlathe = False
             return
         
         if command == "laserrun":
@@ -2069,6 +2083,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             self.queue_B = self.grblB
             self.queue_S = 0.0
             self.queue_F = 0.0
+            self.cornlathe = False
             return
         
     def send_position_event(self, data):
