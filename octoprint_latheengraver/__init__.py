@@ -722,6 +722,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             return cmd
         
         if self.cornlathe:
+            cmd = cmd.upper()
             cmd = re.sub(r'(?i)(^|\s)C(?=\s*-?[\d.])', r'\1A', cmd)
 
         assembly = {"X": None, "Z": None, "A": None, "B": None, "F": None, "S": None}
