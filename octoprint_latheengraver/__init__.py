@@ -684,7 +684,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
     def get_extension_tree(self, *args, **kwargs):
         return dict(
                 model=dict(
-                grbl_gcode=["gc", "nc"]
+                grbl_gcode=["gc", "nc", "ngc"]
                 )
         )
 
