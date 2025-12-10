@@ -114,6 +114,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.match_z = re.compile(r".*[Zz]\ *(-?[\d.]+).*")
         self.match_a = re.compile(r".*[Aa]\ *(-?[\d.]+).*")
         self.match_b = re.compile(r".*[Bb]\ *(-?[\d.]+).*")
+        self.match_c = re.compile(r".*[Cc]\ *(-?[\d.]+).*")
         self.match_f = re.compile(r".*[Ff]\ *(-?[\d.]+).*")
         self.match_s = re.compile(r".*[Ss]\ *(-?[\d.]+).*")
 
@@ -123,6 +124,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.do_bangle = False
         self.do_mod_a = False
         self.do_mod_z = False
+        self.cornlathe = False
         self.bangle = float(0)
         self.boundary = {"boundary" : False, "yval" : 0, "calc_aval": 0, "mod_aval": 0, "direction": "negative", "start": 0.0}
         self.S_limit = False
@@ -685,7 +687,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
     def get_extension_tree(self, *args, **kwargs):
         return dict(
                 model=dict(
-                grbl_gcode=["gc", "nc"]
+                grbl_gcode=["gc", "nc", "ngc"]
                 )
         )
 
@@ -722,6 +724,10 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         if not self.RTCM:
             return cmd
         
+        if self.cornlathe:
+            cmd = cmd.upper()
+            cmd = re.sub(r'(?i)(^|\s)C(?=\s*-?[\d.])', r'\1A', cmd)
+
         assembly = {"X": None, "Z": None, "A": None, "B": None, "F": None, "S": None}
         track_plunge = False
         orig_cmd = cmd
@@ -732,7 +738,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         gcommands = []
         boundary_clear = False #split up G0 moves
         safemove = False #if boundary condition is cleared during G1s, add safe move
-        moves = ["G1", "G01", "G0", "G00"]
+        moves = ["G1", "G01", "G0", "G00", "g0","g1"]
          
         match_x = self.match_x.match(cmd)
         match_z = self.match_z.match(cmd)
@@ -893,6 +899,10 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             assembly["A"] = aval
             cmds.append(self.assemble_command(newcmd, assembly))
             return cmds
+        
+        if self.cornlathe:
+            assembly["X"], assembly["Z"] = assembly["Z"], assembly["X"]
+
         cmd = self.assemble_command(newcmd, assembly)
         return cmd
 
@@ -1182,6 +1192,8 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             self._le_logger.info(f"Setting laserMode to {lm}")
             self.laser_mode = bool(lm)
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="laserchange", laser=bool(lm)))
+            self.send_laser_event( dict(laser_mode=lm) )
+
         # M9 (air assist off) processing - work in progress
         if cmd.upper() == "M9":
             self.coolant = cmd.upper()
@@ -1319,6 +1331,35 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                     self.rotate = True
                     self.rotateThread = threading.Thread(target=self.rotation, args=(rpm, duration_minutes)).start()
             return (None, )
+        
+        if cmd.upper() == "CORNLATHE":
+            self.cornlathe = True
+            return (None,)
+        
+        if cmd.upper() == "STARTCAP":
+            #this will capture the starting position for a particular run
+            self.start_pos = {"X": self.grblX, "Z": self.grblZ, "A": self.grblA, "B": self.grblB}
+            return (None, )
+        
+        if "SC_" in cmd.upper():
+            def _replace_sc(match):
+                axis = match.group(1).upper()
+                if not hasattr(self, "start_pos") or not self.start_pos:
+                    # no captured start position available yet - leave token unchanged
+                    self._le_logger.debug("SC_ token found but start_pos not set")
+                    return match.group(0)
+                val = self.start_pos.get(axis)
+                if val is None:
+                    self._le_logger.debug(f"SC_ token for unknown axis '{axis}' - leaving unchanged")
+                    return match.group(0)
+                # return axis with numeric value formatted to 3 decimals (matches assemble_command formatting)
+                return f"{axis}{float(val):.3f}"
+
+            new_cmd = re.sub(r"SC_([XZAB])", _replace_sc, cmd, flags=re.IGNORECASE)
+            if new_cmd != cmd:
+                self._le_logger.info(f"Replaced SC_ tokens: '{cmd}' -> '{new_cmd}'")
+            cmd = new_cmd
+
         # Grbl 1.1 Realtime Commands (requires Octoprint 1.8.0+)
         # see https://github.com/OctoPrint/OctoPrint/pull/4390
 
@@ -2030,6 +2071,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             self.queue_B = self.grblB
             self.queue_S = 0.0
             self.queue_F = 0.0
+            self.cornlathe = False
             return
         
         if command == "laserrun":
@@ -2046,6 +2088,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             self.queue_B = self.grblB
             self.queue_S = 0.0
             self.queue_F = 0.0
+            self.cornlathe = False
             return
         
     def send_position_event(self, data):
@@ -2053,8 +2096,14 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         custom_payload = data
         self._event_bus.fire(event, payload=custom_payload)
 
+    def send_laser_event(self, data):
+        event = Events.PLUGIN_LATHEENGRAVER_SEND_LASER
+        custom_payload = data
+        self._logger.info(custom_payload)
+        self._event_bus.fire(event, payload=custom_payload)
+
     def register_custom_events(*args, **kwargs):
-        return ["send_position"]
+        return ["send_position","send_laser"]
     
     def on_wizard_finish(self, handled):
         self._logger.debug("__init__: on_wizard_finish handled=[{}]".format(handled))
