@@ -80,6 +80,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.reOrderSidebar = True
         self.disablePrinterSafety = True
         self.weakLaserValue = float(1)
+        self.laser_mode = False
 
         self.lastGCommand = ""
 
@@ -271,7 +272,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             disablePrinterSafety = True,
             grblSettingsText = None,
             grblSettingsBackup = "",
-            weakLaserValue = float(1),
+            weakLaserValue = float(10),
             overrideM8 = False,
             overrideM9 = False,
             m8Command = "",
@@ -360,6 +361,8 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
 
         #self.reOrderTabs = self._settings.get_boolean(["reOrderTabs"])
         #self.reOrderSidebar = self._settings.get_boolean(["reOrderSidebar"])
+
+        self.laser_mode = self._settings.get_boolean(["laserMode"])
 
         self.overrideM8 = self._settings.get_boolean(["overrideM8"])
         self.overrideM9 = self._settings.get_boolean(["overrideM9"])
@@ -1177,6 +1180,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             lm = int(cmd[4])
             self._settings.set_boolean(["laserMode"], bool(lm) )
             self._le_logger.info(f"Setting laserMode to {lm}")
+            self.laser_mode = bool(lm)
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="laserchange", laser=bool(lm)))
         # M9 (air assist off) processing - work in progress
         if cmd.upper() == "M9":
