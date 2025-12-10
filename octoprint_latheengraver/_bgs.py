@@ -302,12 +302,7 @@ def on_event(_plugin, event, payload):
 
         _plugin.is_printing = True
         _plugin._settings.set_boolean(["is_printing"], _plugin.is_printing)
-
-        #these should never be on in lasermode
-        #if is_laser_mode(_plugin):
-        #    _plugin.template = False
-        #    _plugin.track_plunge =False
-        
+      
         if _plugin.autoCooldown:
             activate_auto_cooldown(_plugin)
         #Get Machine positions to log starting positions
@@ -352,26 +347,6 @@ def on_event(_plugin, event, payload):
     # Print Resumed
     if event == Events.PRINT_RESUMED:
         _plugin._logger.debug("resuming job")
-
-        """
-        _plugin._printer.commands(["~","M3","G4 P5"], tags={"script:beforePrintResumed"}, force=True)
-
-        _plugin._printer.commands(["~", "M3", "G4 P5"], force=True)
-
-        # move our spindle back down 5
-        #if not is_laser_mode(_plugin):
-        #    _plugin._printer.commands(["G4 P10", "G91 G0 Z-5"], force=True)
-
-
-        # make sure we are using whatever positioning mode was active before we paused
-        _plugin._printer.commands(["G91" if _plugin.pausedPositioning == 1 else "G90"], tags={"script:beforePrintResumed"},force=True)
-        
-        #only send if there is a queued command
-        if _plugin.queued_command:
-            _plugin._printer.commands(["{0}".format(_plugin.queued_command)], tags={"script:beforePrintResumed"}, force=True)
-            _plugin.queued_command = ""
-
-        """
         _plugin.grblState = "Run"
         _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_state", state="Run"))
 
@@ -482,7 +457,8 @@ def process_grbl_status_msg(_plugin, msg):
                 coord=_plugin.grblCoordinateSystem,
                 coolant=_plugin.coolant,
                 positioning=_plugin.positioning,
-                bf=_plugin.grblBuffer)
+                bf=_plugin.grblBuffer,
+                laser=_plugin.laser_mode)
 
     _plugin._plugin_manager.send_plugin_message(_plugin._identifier, data)
     _plugin.send_position_event(data)

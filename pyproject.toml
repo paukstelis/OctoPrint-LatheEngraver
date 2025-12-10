@@ -1,0 +1,42 @@
+[build-system]
+requires = [
+    "setuptools>=68",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "LatheEngraver-Support"
+version = "1.1.5"
+description = "Extends Octoprint to support LatheEngraver bolt-on CNC. Based on S. Shrader Better Grbl Support"
+authors = [
+    { name = "Shell M. Shrader/P. Paukstelis", email = "transpirationturning@gmail.com" },
+]
+requires-python = ">=3.7,<4"
+dependencies = []
+dynamic = [
+    "license",
+]
+
+[project.entry-points."octoprint.plugin"]
+latheengraver = "octoprint_latheengraver"
+
+[project.urls]
+Homepage = "https://github.com/paukstelis/OctoPrint-LatheEngraver"
+
+[project.optional-dependencies]
+develop = [
+    "go-task-bin",
+]
+
+[project.readme]
+file = "README.md"
+content-type = "text/markdown"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = [
+    "octoprint_latheengraver",
+    "octoprint_latheengraver.*",
+]

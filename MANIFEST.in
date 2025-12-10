@@ -2,3 +2,6 @@ include README.md
 recursive-include octoprint_bettergrblsupport/templates *
 recursive-include octoprint_bettergrblsupport/translations *
 recursive-include octoprint_bettergrblsupport/static *
+recursive-include octoprint_latheengraver/templates *
+recursive-include octoprint_latheengraver/translations *
+recursive-include octoprint_latheengraver/static *

@@ -60,9 +60,7 @@
         </tr>
         <!-- /ko -->
         <tr>
-         <!-- ko if: settings.settings.plugins.latheengraver.laserMode -->
-           <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">Power</td>
-         <!-- /ko -->
+           <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle" data-bind="visible: laser_mode()">Power</td>
         </tr>
         <tr>
            <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">Feed</td>
@@ -234,16 +232,17 @@
 
    <span id="laser_buttons" style="display: inline-block; vertical-align: top; margin: 20px 0px 20px 0px" >
       
-        <button id="grblLaserButton" class="btn laserbtn" style="width: 140px; border: 1px solid;" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() { toggleWeak() }">Weak Laser</button>
-        <br>
-        <br>
-
+      <button id="grblLaserButton" class="btn laserbtn" style="width: 140px; border: 1px solid;" data-bind="visible: laser_mode(), enable: is_operational() && !is_printing() && state() == 'Idle', click: function() { toggleWeak() }">Weak Laser</button>
+      <br>
+      <br>
       <button class="btn" style="width: 140px; border: 1px solid;" data-bind="enable: is_operational(), click: function() { sendCommand('reset') }">Soft Reset</button>
       <br>
       <br>
       <button class="btn" style="width: 140px; border: 1px solid;" data-bind="enable: is_operational() && !is_printing() && state() == 'Alarm', click: function() { sendCommand('unlock') }">Unlock</button>
       <br>
       <br>
+      <button class="btn" style="width: 140px; border: 1px solid;" data-bind="enable: is_operational() && !is_printing(), click: function() { toggle_laser() }">Laser Mode</button>
+
    </span>
    <span style="display: inline-block; margin: 0px 10px 0px 10px; vertical-align: middle;">&nbsp;</span>
 </div>

@@ -75,6 +75,8 @@ $(function() {
 
         self.controls = ko.observableArray([]);
 
+        self.laser_mode = ko.observable(false);
+
         tab = document.getElementById("tab_plugin_latheengraver_link");
         tab.innerHTML = tab.innerHTML.replaceAll("LatheEngraver Support", "Control");
         
@@ -148,8 +150,8 @@ $(function() {
         };
         
         self.onBeforePrintStart = function(start_print_command) {
-            var laserMode = self.settings.settings.plugins.latheengraver.laserMode();
-            if (laserMode == true) {
+            
+            if (self.laserMode() === true) {
                 showDialog("#laserStartDialog", function(dialog){
                     OctoPrint.simpleApiCommand("latheengraver", "laserrun", { "sessionId": self.sessionId,})
                     .done(function(response) {
@@ -483,8 +485,8 @@ $(function() {
 
             if (self.settings.settings.plugins.latheengraver.hasA() == true) { self.origin_axes.push("A"); }
             if (self.settings.settings.plugins.latheengraver.hasB() == true) { self.origin_axes.push("B"); }
-            if (self.settings.settings.plugins.latheengraver.laserMode() == true) { $(".laserbtn").show(); }
-            if (self.settings.settings.plugins.latheengraver.laserMode() == false) { $(".laserbtn").hide(); }
+            if (self.settings.settings.plugins.latheengraver.laserMode() == true) { self.laser_mode(true); }
+            if (self.settings.settings.plugins.latheengraver.laserMode() == false) { self.laser_mode(false); }
     
             self.notifications.requestData = self.overrideRequestData;
             self.notifications.clear = self.overrideClear;
@@ -611,11 +613,7 @@ $(function() {
 
             if (plugin == 'latheengraver' && data.type == 'laserchange') {
                 console.log(data);
-                if (data.laser == "true") {
-                    $(".laserbtn").show();
-                } else {
-                    $(".laserbtn").hide();
-                }
+                self.laser_mode(data.laser);
             }
 
             if (plugin == 'latheengraver' && data.type == 'simple_notify') {
@@ -676,9 +674,9 @@ $(function() {
           if (self.is_operational() && !self.is_printing()) {
             if (self.mode() == "WPos") {
             //changes for grblhal
-              OctoPrint.control.sendGcode(["$10=474", "?", "$$"]);
+              OctoPrint.control.sendGcode(["$10=218", "?", "$$"]);
             } else {
-              OctoPrint.control.sendGcode(["$10=475", "?", "$$"]);
+              OctoPrint.control.sendGcode(["$10=219", "?", "$$"]);
             }
           }
         }
@@ -702,6 +700,17 @@ $(function() {
             }
           }
         }
+
+        self.toggle_laser = function() {
+            self.laser_mode(!self.laser_mode());
+
+            if(self.laser_mode()) {
+                OctoPrint.control.sendGcode(["$32=1"]);
+            } else {
+                OctoPrint.control.sendGcode(["$32=0"]);
+            }
+
+        };
 
         self.fsClick = function() {  
             $body.toggleClass('inlineFullscreen');
