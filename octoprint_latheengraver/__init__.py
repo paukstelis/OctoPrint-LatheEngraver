@@ -1639,6 +1639,18 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         # let's only do stuff if our profile is selected
         if self._printer_profile_manager.get_current_or_default()["id"] != "_bgs":
             return None
+        
+        if line.startswith('[MSG:Warning: Could not communicate with stepper driver!]'):
+            payload = dict(
+            type="simple_notify",
+            title="Cannot communicate with steppers",
+            text="Stepper drivers are not communicating. Disconnect USB, repower main board, then connect USB.",
+            hide=True,
+            delay=20000,
+            notify_type="error"
+        )
+
+            self._plugin_manager.send_plugin_message("latheengraver", payload)
 
         # look for a status message
         if 'MPos' in line or 'WPos' in line:
@@ -1868,8 +1880,11 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 # now rather than wait for it to be sent -- it could be a while for
                 # one to come in
                 if self._printer.is_printing():
-                    self._printer.commands("F{}".format(self.queue_F*self.feedRate), force=True)
-                    self.queue_F=self.queue_F*self.feedRate
+                    if self.RTCM:
+                        self._printer.commands("F{}".format(self.queue_F*self.feedRate), force=True)
+                        self.queue_F=self.queue_F*self.feedRate
+                    else:
+                        self._printer.commands("F{}".format(self.grblSpeed*self.feedRate), force=True)
             else:
                 self.feedRate = float(0)
 

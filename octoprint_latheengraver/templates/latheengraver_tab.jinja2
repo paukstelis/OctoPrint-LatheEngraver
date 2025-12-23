@@ -96,9 +96,7 @@
           <td colspan=3 align="center">
             <label>Axis selection</label>
             <span class="btn-group" data-toggle="buttons-radio" style="margin: 0px 0px 10px 0px;">
-               <!-- ko foreach: origin_axes -->
-                <button type="button" class="btn origin_axis" style="border: 1px solid;" data-bind="attr: { id: 'control-axes-' + $data }, click: function() { $root.origin_axis($data) }, text: $data, css: { active: $root.origin_axis() === $data }"></button>
-               <!-- /ko -->
+              <!-- ko template: { name: 'origin_axes_template', foreach: origin_axes } --><!-- /ko -->
             </span>
           </td>
         </tr>
@@ -116,10 +114,8 @@
                </div>
             </td>
             <td rowspan=5 valign="top">
-              <!-- ko foreach: coordinate_systems -->
-               <button type="button" class="btn coordinate_system" style="border: 1px solid; margin: 1px 0px 1px 0px;" data-bind="enable: $root.is_operational() && !$root.is_printing() && $root.state() == 'Idle', click: function() { $root.coordinateSystemChanged($data) }, text: $data, css: { active: $root.coordinate_system() === $data }"></button>
+               <!-- ko template: { name: 'coordinate_systems_template', foreach: coordinate_systems } --><!-- /ko -->
                <br>
-              <!-- /ko -->
             </td>
          </tr>
          <tr>
@@ -216,9 +212,7 @@
             <td colspan=3 class="distance">
               <span>
                  <span align="center" class="btn-group">
-                    <!-- ko foreach: distances -->
-                      <button id="control-distance-$data" type="button" class="btn dist" style="border: 1px solid; margin: 5px 0px 0px 0px" data-bind="attr: { id: 'control-distance-' + $index() }, click: function() { $parent.distanceClicked($data) }, text: $data, enable: $root.operator() != 'J'"></button>
-                    <!-- /ko -->
+                   <!-- ko template: { name: 'distances_template', foreach: distances } --><!-- /ko -->
                  </span>
                 <span style="margin: 0px 1px 0px 1px">&nbsp;</span>
                  <span>
@@ -242,7 +236,9 @@
       <br>
       <br>
       <button class="btn" style="width: 140px; border: 1px solid;" data-bind="enable: is_operational() && !is_printing(), click: function() { toggle_laser() }">Laser Mode</button>
-
+      <br>
+      <br>
+      <button id="popout" class="btn" style="width: 140px; border: 1px solid;" data-bind="click: popOutControlPanel">Pop Controls</button>
    </span>
    <span style="display: inline-block; margin: 0px 10px 0px 10px; vertical-align: middle;">&nbsp;</span>
 </div>
@@ -391,5 +387,39 @@
 </script>
 <script type="text/html" id="customControls_controlTemplate_command">
     <button class="btn" data-bind="text: name, css: additionalClasses, enable: $root.isCustomEnabled($data), click: function() { $root.clickCustom($data) }"></button>
+</script>
+
+<script type="text/html" id="origin_axes_template">
+  <button type="button"
+          class="btn origin_axis"
+          style="border: 1px solid;"
+          data-bind="attr: { id: 'control-axes-' + $data },
+                     click: function() { $parent.origin_axis($data) },
+                     text: $data,
+                     css: { active: $root.origin_axis() === $data }">
+  </button>
+</script>
+
+<script type="text/html" id="coordinate_systems_template">
+  <button type="button"
+          class="btn coordinate_system"
+          style="border: 1px solid; margin: 1px 0px 1px 0px;"
+          data-bind="enable: $root.is_operational() && !$root.is_printing() && $root.state() == 'Idle',
+                     click: function() { $root.coordinateSystemChanged($data) },
+                     text: $data,
+                     css: { active: $root.coordinate_system() === $data }">
+  </button>
+  <br>
+</script>
+
+<script type="text/html" id="distances_template">
+  <button type="button"
+          class="btn dist"
+          style="border: 1px solid; margin: 5px 0px 0px 0px"
+          data-bind="attr: { id: 'control-distance-' + $index() },
+                     click: function() { $parent.distanceClicked($data) },
+                     text: $data,
+                     enable: $root.operator() != 'J'">
+  </button>
 </script>
 <!-- End of templates for custom controls -->

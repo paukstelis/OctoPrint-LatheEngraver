@@ -29,7 +29,7 @@ $(function() {
         self.webcamHlsEnabled = ko.observable(false);
         self.webcamError = ko.observable(false);
 
-        self.origin_axes = ko.observableArray(["Z", "X", "XZ","XZA","ALL"]);
+        self.origin_axes = ko.observableArray(["Z", "X", "XZ","XZA","ALL","A","B"]);
         self.origin_axis = ko.observable("XZ");
 
         self.coordinate_systems = ko.observableArray(["G54", "G55", "G56", "G57", "G58", "G59"]);
@@ -266,6 +266,100 @@ $(function() {
             self.webcamHlsEnabled(true);
         };
 
+        self.popOutControlPanel = function() {
+            const $src = $("#control_panel");
+            if ($src.length === 0) return;
+
+            const w = window.open("", "latheengraver_control_panel", "width=600,height=580");
+            if (!w) return;
+
+            w.document.write(`<!doctype html><html><head>
+            <title>LatheEngraver Control Panel</title>
+            <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+            <link rel="stylesheet" href="${location.origin}/static/css/bootstrap.min.css">
+            <link rel="stylesheet" href="${location.origin}/plugin/latheengraver/static/css/latheengraver.css">
+            <link rel="stylesheet" href="${location.origin}/static/vendor/font-awesome-3.2.1/css/font-awesome.min.css">
+            <link rel="stylesheet" href="${location.origin}/static/vendor/font-awesome-6.5.1/css/all.min.css">
+            <style>body{padding:10px;}</style></head><body>
+            <div id="control_panel_popout"></div>
+            </body></html>`);
+            w.document.close();
+
+            // Inject Knockout templates used by the main page into the pop-up
+            const templates = document.querySelectorAll('script[type="text/html"]');
+            templates.forEach(tpl => {
+                const clone = w.document.createElement('script');
+                clone.type = 'text/html';
+                clone.id = tpl.id;
+                clone.innerHTML = tpl.innerHTML;
+                w.document.body.appendChild(clone);
+            });
+
+            // Clone control panel markup into the pop-up and give it a unique id
+            const cloned = $src.clone(true, true);
+            cloned.attr("id", "control_panel_popout_inner");
+            const target = w.document.getElementById("control_panel_popout");
+            target.appendChild(w.document.importNode(cloned[0], true));
+
+            try {
+                // Resolve the view model from OctoPrint core UI (fallback to global)
+                const list = window.OctoPrint && window.OctoPrint.coreui && window.OctoPrint.coreui.viewmodels;
+                let vm = null;
+                if (Array.isArray(list)) {
+                    vm = list.find(m => m && m.constructor && m.constructor.name &&
+                        m.constructor.name.indexOf("LatheengraverViewModel") !== -1);
+                } else if (list && typeof list === "object") {
+                    vm = Object.values(list).find(m => m && m.constructor && m.constructor.name &&
+                        m.constructor.name.indexOf("LatheengraverViewModel") !== -1);
+                }
+                vm = vm || window.latheengraverViewModel || null;
+
+                if (vm) {
+                    // Provide parent globals to the pop-up so bindings and actions work
+                    w.ko = window.ko;
+                    w.$ = window.$;
+                    w.OctoPrint = window.OctoPrint;
+                    w.gettext = window.gettext;
+                    w.PNotify = window.PNotify;
+
+                    const popBtn = w.document.getElementById("popout");
+                    if (popBtn) popBtn.remove();
+
+                    const bindRoot = w.document.getElementById("control_panel_popout_inner");
+                    if (w.ko.dataFor(bindRoot)) {
+                        w.ko.cleanNode(bindRoot);
+                    }
+                    w.ko.applyBindings(vm, bindRoot);
+
+                    // Keyboard forwarding in pop-up to reuse existing handler
+                    w.addEventListener("keydown", function(e) {
+                        try {
+                            if (w.$(":focus").length === 0) {
+                                vm.onKeyDown(undefined, e);
+                            }
+                        } catch (_) {}
+                    }, true);
+
+                    w.addEventListener("keyup", function(e) {
+                        try {
+                            if (vm.jogmove == 2) {
+                                w.OctoPrint.control.sendGcode("CANCELJOG");
+                            }
+                            vm.jogmove = 0;
+                        } catch (_) {}
+                    }, true);
+
+                    // Ensure the pop-up receives key events
+                    w.document.body.tabIndex = 0;
+                    w.document.body.focus();
+                } else {
+                    console.warn("Latheengraver view model not found; controls may not function in popout.");
+                }
+            } catch (e) {
+                console.error("Popout binding error:", e);
+            }
+        };
+   
         self.handleFocus = function (event, type, item) {
           window.setTimeout(function () {
               event.target.select();
@@ -483,8 +577,8 @@ $(function() {
             //Replace Load and Print with Load and Start
             self.replacePrint();
 
-            if (self.settings.settings.plugins.latheengraver.hasA() == true) { self.origin_axes.push("A"); }
-            if (self.settings.settings.plugins.latheengraver.hasB() == true) { self.origin_axes.push("B"); }
+            //if (self.settings.settings.plugins.latheengraver.hasA() == true) { self.origin_axes.push("A"); }
+            //if (self.settings.settings.plugins.latheengraver.hasB() == true) { self.origin_axes.push("B"); }
             if (self.settings.settings.plugins.latheengraver.laserMode() == true) { self.laser_mode(true); }
             if (self.settings.settings.plugins.latheengraver.laserMode() == false) { self.laser_mode(false); }
     
@@ -532,6 +626,8 @@ $(function() {
 
         self.onAllBound = function (allViewModels) {
           self._enableWebcam();
+
+          window.latheengraverViewModel = self;
 
           OctoPrint.control.getCustomControls().done(function (response) {
             self.controls(self._processControls(response.controls));
