@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "LatheEngraver-Support"
-version = "1.1.5"
+version = "1.1.6"
 description = "Extends Octoprint to support LatheEngraver bolt-on CNC. Based on S. Shrader Better Grbl Support"
 authors = [
     { name = "Shell M. Shrader/P. Paukstelis", email = "transpirationturning@gmail.com" },
