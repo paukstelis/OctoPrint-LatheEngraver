@@ -1204,14 +1204,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 subprocess.call(self.m9Command, shell=True)
 
                 return (None,)
-        if cmd.upper() == "G91":
-            self.relative = True
-            self._logger.info("Relative mode")
-            return (cmd, )
-        if cmd.upper() == "G90":
-            self._logger.info("Absolute mode")
-            self.relative = False
-            return (cmd, )
+        
         if cmd.upper() == "DOBANGLE":
             self.do_bangle = True
             #turn on RTCM as well
@@ -1248,13 +1241,16 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             self.do_mod_a = False
             self._le_logger.info('Depth modification inactive')
             return (None, )
+        
         if cmd.upper() == "DOARCMOD":
             self.do_mod_z = True
             self.RTCM = True
             return (None, )
+        
         if cmd.upper() == "STOPARCMOD":
             self.do_mod_z = False
             return (None, )
+        
         if cmd.upper().startswith("MAXARC"):
             minmax_match = re.search(r"MAXARC ([\d.]+)", cmd)
             if minmax_match:
@@ -1521,6 +1517,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         if "G90" in cmd.upper():
             # absolute positioning
             self.positioning = 0
+            self.relative = False
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", positioning=self.positioning))
             found=True
 
@@ -1528,6 +1525,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         if "G91" in cmd.upper():
             # relative positioning
             self.positioning = 1
+            self.relative = True
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", positioning=self.positioning))
             found=True
 
