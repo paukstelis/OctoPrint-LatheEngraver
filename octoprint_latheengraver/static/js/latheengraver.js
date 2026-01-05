@@ -150,8 +150,8 @@ $(function() {
         };
         
         self.onBeforePrintStart = function(start_print_command) {
-            
-            if (self.laserMode() === true) {
+            console.log(self.laser_mode());
+            if (self.laser_mode() === true) {
                 showDialog("#laserStartDialog", function(dialog){
                     OctoPrint.simpleApiCommand("latheengraver", "laserrun", { "sessionId": self.sessionId,})
                     .done(function(response) {
@@ -396,8 +396,19 @@ $(function() {
             OctoPrint.simpleApiCommand("latheengraver", "toggleWeak")
                 .done(
                     function(data) {
+                        // Update button in main window
                         var btn = document.getElementById("grblLaserButton");
-                        btn.innerHTML = btn.innerHTML.replace(btn.innerText, data["res"]);
+                        if (btn) {
+                            btn.innerHTML = btn.innerHTML.replace(btn.innerText, data["res"]);
+                        }
+                        // Update button in pop-out window if it exists
+                        var popout = window.open('', 'latheengraver_control_panel');
+                        if (popout && !popout.closed) {
+                            var popBtn = popout.document.getElementById("grblLaserButton");
+                            if (popBtn) {
+                                popBtn.innerHTML = popBtn.innerHTML.replace(popBtn.innerText, data["res"]);
+                            }
+                        }
                     }
                 )
                 .fail(
