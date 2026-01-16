@@ -937,13 +937,13 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
 
         local_distance = distance - radius - zval
         new_A = math.degrees(new_A)
-        self._le_logger.info(f"Pre-modified A: {new_A}")
+        self._le_logger.debug(f"Pre-modified A: {new_A}")
         newest_A = new_A
         #already in boundary mode:
         if self.boundary["boundary"]:
             #direction swap check in the boundary modification block
             if calc_Y * sb['yval'] < 0 and abs(sb["calc_aval"] - new_A) > 200:
-                self._le_logger.info("Boundary direction change, breaking out of boundary")
+                self._le_logger.debug("Boundary direction change, breaking out of boundary")
                 sb["boundary"] = False
                 domod = False
 
@@ -980,7 +980,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         sb["yval"] = calc_Y
         sb["mod_aval"] = newest_A
 
-        self._le_logger.info("Calc. Y: {0:.2f}, Distance: {1:.2f}, To Origin: {2:.2f}, Degrees: {3:.2f}, Zval: {4:.2f}".format(calc_Y, distance, to_origin, newest_A, zval))
+        self._le_logger.debug("Calc. Y: {0:.2f}, Distance: {1:.2f}, To Origin: {2:.2f}, Degrees: {3:.2f}, Zval: {4:.2f}".format(calc_Y, distance, to_origin, newest_A, zval))
         return newest_A, local_distance, safemove
 
     def get_boundary_value(self, aval):
