@@ -14,6 +14,7 @@ $(function() {
         self.loginState = parameters[1];
         self.access = parameters[2];
         self.notifications = parameters[3];
+        self.files = parameters[4];
 
         self.my_notifications = ko.observableArray();
 
@@ -719,6 +720,10 @@ $(function() {
                 }
                 // console.log("mode=" + data.mode + " state=" + data.state + " x=" + data.x + " y=" + data.y + " z=" + data.z + " power=" + data.power + " speed=" + data.speed);
                 return
+            }
+
+            if (plugin == 'latheengraver' && data.type == 'filerefresh') {
+                self.files.requestData({ force: true });
             }
 
             if (plugin == 'latheengraver' && data.type == 'laserchange') {
@@ -1578,7 +1583,7 @@ $(function() {
 
     OCTOPRINT_VIEWMODELS.push([
         LatheengraverViewModel,
-        ["settingsViewModel", "loginStateViewModel", "accessViewModel", "actionCommandNotificationViewModel"],
+        ["settingsViewModel", "loginStateViewModel", "accessViewModel", "actionCommandNotificationViewModel","filesViewModel"],
         ["#tab_plugin_latheengraver"]
     ]);
 });
