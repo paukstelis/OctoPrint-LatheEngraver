@@ -14,6 +14,7 @@ $(function() {
         self.loginState = parameters[1];
         self.access = parameters[2];
         self.notifications = parameters[3];
+        self.files = parameters[4];
 
         self.my_notifications = ko.observableArray();
 
@@ -80,6 +81,9 @@ $(function() {
         tab = document.getElementById("tab_plugin_latheengraver_link");
         tab.innerHTML = tab.innerHTML.replaceAll("LatheEngraver Support", "Control");
         
+        self.popoutWindow = null; 
+        
+
         self._disableWebcam = function() {
             // only disable webcam stream if tab is out of focus for more than 5s, otherwise we might cause
             // more load by the constant connection creation than by the actual webcam stream
@@ -272,6 +276,7 @@ $(function() {
 
             const w = window.open("", "latheengraver_control_panel", "width=600,height=580");
             if (!w) return;
+            self.popoutWindow = w;
 
             w.document.write(`<!doctype html><html><head>
             <title>LatheEngraver Control Panel</title>
@@ -402,9 +407,8 @@ $(function() {
                             btn.innerHTML = btn.innerHTML.replace(btn.innerText, data["res"]);
                         }
                         // Update button in pop-out window if it exists
-                        var popout = window.open('', 'latheengraver_control_panel');
-                        if (popout && !popout.closed) {
-                            var popBtn = popout.document.getElementById("grblLaserButton");
+                        if (self.popoutWindow && !self.popoutWindow.closed) {
+                            var popBtn = self.popoutWindow.document.getElementById("grblLaserButton");
                             if (popBtn) {
                                 popBtn.innerHTML = popBtn.innerHTML.replace(popBtn.innerText, data["res"]);
                             }
@@ -716,6 +720,10 @@ $(function() {
                 }
                 // console.log("mode=" + data.mode + " state=" + data.state + " x=" + data.x + " y=" + data.y + " z=" + data.z + " power=" + data.power + " speed=" + data.speed);
                 return
+            }
+
+            if (plugin == 'latheengraver' && data.type == 'filerefresh') {
+                self.files.requestData({ force: true });
             }
 
             if (plugin == 'latheengraver' && data.type == 'laserchange') {
@@ -1221,12 +1229,16 @@ $(function() {
                 case 33: // page up key
                 case 87: // w key
                     // z lift up
-                   button = $("#control-zup");
+                   button = $("#control-yup");
+                   visualizeClick = true;
+                   simulateTouch = true;
                     break;
                 case 34: // page down key
                 case 83: // s key
                     // z lift down
-                    button = $("#control-zdown");
+                    button = $("#control-ydown");
+                    visualizeClick = true;
+                    simulateTouch = true;
                     break;
                 case 36: // home key
                     // xy home
@@ -1575,7 +1587,7 @@ $(function() {
 
     OCTOPRINT_VIEWMODELS.push([
         LatheengraverViewModel,
-        ["settingsViewModel", "loginStateViewModel", "accessViewModel", "actionCommandNotificationViewModel"],
+        ["settingsViewModel", "loginStateViewModel", "accessViewModel", "actionCommandNotificationViewModel","filesViewModel"],
         ["#tab_plugin_latheengraver"]
     ]);
 });

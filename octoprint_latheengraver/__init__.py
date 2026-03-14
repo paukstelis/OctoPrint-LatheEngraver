@@ -937,13 +937,13 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
 
         local_distance = distance - radius - zval
         new_A = math.degrees(new_A)
-        self._le_logger.info(f"Pre-modified A: {new_A}")
+        self._le_logger.debug(f"Pre-modified A: {new_A}")
         newest_A = new_A
         #already in boundary mode:
         if self.boundary["boundary"]:
             #direction swap check in the boundary modification block
             if calc_Y * sb['yval'] < 0 and abs(sb["calc_aval"] - new_A) > 200:
-                self._le_logger.info("Boundary direction change, breaking out of boundary")
+                self._le_logger.debug("Boundary direction change, breaking out of boundary")
                 sb["boundary"] = False
                 domod = False
 
@@ -980,7 +980,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         sb["yval"] = calc_Y
         sb["mod_aval"] = newest_A
 
-        self._le_logger.info("Calc. Y: {0:.2f}, Distance: {1:.2f}, To Origin: {2:.2f}, Degrees: {3:.2f}, Zval: {4:.2f}".format(calc_Y, distance, to_origin, newest_A, zval))
+        self._le_logger.debug("Calc. Y: {0:.2f}, Distance: {1:.2f}, To Origin: {2:.2f}, Degrees: {3:.2f}, Zval: {4:.2f}".format(calc_Y, distance, to_origin, newest_A, zval))
         return newest_A, local_distance, safemove
 
     def get_boundary_value(self, aval):
@@ -2044,7 +2044,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             elif axis == "B" and hasB:
                 self._printer.commands(["G91 G10 P{} L20 B0".format(program),"G92 B0"])
             else:
-                self._printer.commands("G91 G10 P{0} L20 X0 Y0 Z0 {1}".format(program, extra_axes))
+                self._printer.commands(["G91 G10 P{0} L20 X0 Y0 Z0 {1}".format(program, extra_axes),"G92 X0 Z0 A0 B0"])
 
             _bgs.add_notifications(self, ["Coordinate system {} home for {} set".format(program, axis)])
             return
@@ -2182,11 +2182,6 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                         }
                     ],
                 pip='https://github.com/paukstelis/OctoPrint-LatheEngraver/archive/{target_version}.zip'))
-
-
-# If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py
-# ("OctoPrint-PluginSkeleton"), you may define that here. Same goes for the other metadata derived from setup.py that
-# can be overwritten via __plugin_xyz__ control properties. See the documentation for that.
 
 __plugin_name__ = 'LatheEngraver Support'
 __plugin_pythoncompat__ = ">=2.7,<4"

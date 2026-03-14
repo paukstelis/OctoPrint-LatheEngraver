@@ -160,6 +160,7 @@
 325 Telnet port, default value 23. Range 1 - 65536
 326 HTTP port, default value 80. Range 1 - 65536
 327 Websocket port, default value 81. Range 1 - 65536
+339 Sensorless homing, mask
 340 Spindle at speed tolerance, default 0 percent
 341 Manual tool change mode, default value 0
 342 Probing distance, default 30 mm
@@ -167,8 +168,13 @@
 344 Probing seek feed rate, default 200 mm/min
 345 Tool change pull off rate
 346 Tool change options
+376 Rotary mask
 384 G92 persistence
+386 Aux port for Fan 0
+387 Aux port for Fan 1
 398 Planner block size
+480 Fan turn off delay
+483 Fan bit link to spindle enable
 481 Auto-report interval (ms)
 485 Tool persistence 
 
