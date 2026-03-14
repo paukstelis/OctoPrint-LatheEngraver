@@ -1229,12 +1229,16 @@ $(function() {
                 case 33: // page up key
                 case 87: // w key
                     // z lift up
-                   button = $("#control-zup");
+                   button = $("#control-yup");
+                   visualizeClick = true;
+                   simulateTouch = true;
                     break;
                 case 34: // page down key
                 case 83: // s key
                     // z lift down
-                    button = $("#control-zdown");
+                    button = $("#control-ydown");
+                    visualizeClick = true;
+                    simulateTouch = true;
                     break;
                 case 36: // home key
                     // xy home
