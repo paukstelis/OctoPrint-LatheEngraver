@@ -1278,18 +1278,16 @@ $(function() {
 
         function updateLatheengraverHomeButtonFocus() {
             if (
-                OctoPrint.coreui.selectedTab != undefined &&
-                OctoPrint.coreui.selectedTab == "#tab_plugin_latheengraver" &&
-                OctoPrint.coreui.browserTabVisible &&
-                $(":focus").length == 0
+                $("#control_panel").is(":focus") || // Check if the control_panel div itself has focus
+                $("#control_panel").find(":focus").length > 0 // Check if any child element of control_panel has focus
             ) {
                 $("#infopanel").addClass("latheengraver-focus");
             } else {
                 $("#infopanel").removeClass("latheengraver-focus");
             }
-
         }
 
+        $("#control_panel").on("focusin focusout", updateLatheengraverHomeButtonFocus);
 
         $(document).ready(function() {
             updateLatheengraverHomeButtonFocus();
