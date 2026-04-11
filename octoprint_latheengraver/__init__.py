@@ -147,6 +147,12 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.TERMINATE = False
         self.job_on_hold = False
 
+        self.run_count = 0
+        self.total_runs = 0
+        self.multi = False
+        self.true_idle = True
+        self.current_run = 1
+
         self.rotate = False
         self.rotateFeed = 0
         self.feedcontrol = {"current": 0, "prev": 0, "next": 0}
@@ -1204,7 +1210,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 subprocess.call(self.m9Command, shell=True)
 
                 return (None,)
-        
+            
         if cmd.upper() == "DOBANGLE":
             self.do_bangle = True
             #turn on RTCM as well
@@ -1629,10 +1635,9 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
 
         return (cmd, )
 
-
     # #-- gcode received hook 
     def hook_gcode_received(self, comm_instance, line, *args, **kwargs):
-        self._logger.debug("__init__: hook_gcode_received line=[{}]".format(line.replace("\r", "<cr>").replace("\n", "<lf>")))
+        #self._logger.debug("__init__: hook_gcode_received line=[{}]".format(line.replace("\r", "<cr>").replace("\n", "<lf>")))
 
         # let's only do stuff if our profile is selected
         if self._printer_profile_manager.get_current_or_default()["id"] != "_bgs":
@@ -1768,6 +1773,27 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 self._settings.save(trigger_event=True)
         return "ok "
 
+    def _start_next_print(self):
+        self.current_run += 1
+        current_run = self.current_run
+        self.run_count -= 1
+        self._logger.info(f"Starting run {current_run} of {self.total_runs}")
+
+        endtime = time.time()
+        while not self._printer.is_ready():
+            time.sleep(0.1)
+            if time.time() - endtime > 5:
+                return
+        self.grblState = "Idle" #have to set this due to bgs check
+        self._printer.start_print()
+        payload = dict(
+            type="simple_notify",
+            title="Multiple Runs",
+            text=f"Starting run {current_run} of {self.total_runs}",
+            hide=True,
+            delay=20000,
+            notify_type="notify")
+        self._plugin_manager.send_plugin_message("latheengraver", payload)
 
     # ~ SimpleApiPlugin
     def is_api_protected(self):
@@ -1797,6 +1823,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             powerRate=["power_rate"],
             cncrun=[],
             laserrun=[],
+            multirun=[],
             giveposition=[]
         )
 
@@ -2052,6 +2079,27 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         if command == "toggleWeak":
             return flask.jsonify({'res' : _bgs.toggle_weak(self)})
         
+        if command == "multirun":
+            self.do_bangle = False
+            self.do_mod_a = False
+            self.do_mod_z = False
+            self.TERMINATE = False
+            self.queued_command = ""
+            self.RTCM = False
+            self.queue_X = self.grblX
+            self.queue_Z = self.grblZ
+            self.queue_A = self.grblA
+            self.queue_B = self.grblB
+            self.queue_S = 0.0
+            self.queue_F = 0.0
+            self.cornlathe = False
+            
+            self.multi = True
+            self.run_count = int(data["run_count"])
+            self.total_runs = int(data["run_count"])
+            self.current_run = 0
+            self._start_next_print()
+
         if command == "cncrun":
             self._logger.info(data)
             self.template = bool(data["template"])

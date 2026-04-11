@@ -332,6 +332,34 @@
     </div>
 </div>
 
+<div id="MultiStartDialog" class="modal hide fade">
+    <div class="modal-header">
+        <a href="#" class="close" data-dismiss="modal" aria-hidden="true">&times;</a>
+        <h3 class="modal-title">Multiple Runs</h3>
+    </div>
+    
+    <div class="modal-body multi">
+        <h4>Multi-Run Settings</h4>
+         <div>
+            <label for="multi">Enable multi-run:
+               <input id="multi" type="checkbox" data-bind="checked: multi">
+               <i class="icon icon-info-sign" title="Enables multiple runs" data-toggle="tooltip"></i>
+            </label>
+         </div>
+         <div>
+            <label for="run_count">Number of Runs:
+            <input id="run_count" type="number" step="any" data-bind="value: run_count">
+            <i class="icon icon-info-sign" title="Repeat a run this number of times." data-toggle="tooltip"></i>
+            </label>       
+         </div>
+    </div>
+    
+    <div class="modal-footer">
+        <button class="btn btn-cancel" data-dismiss="modal" aria-hidden="true">Cancel</button>
+        <button class="btn btn-danger btn-confirm">Confirm</button>
+    </div>
+</div>
+
 <!-- Container for custom controls -->
 <div id="control-jog-custom" style="clear: both; display: none;" data-bind="visible: loginState.hasPermissionKo(access.permissions.CONTROL), template: { name: $root.displayMode, foreach: controls }"></div>
 

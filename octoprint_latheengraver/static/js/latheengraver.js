@@ -54,6 +54,11 @@ $(function() {
         self.minZ_inc = ko.observable(0);
         self.ovality = ko.observable(false);
         self.ignore_moda = ko.observable(false);
+        
+        //for multi-run
+        self.multi = ko.observable(false);
+        self.run_count = ko.observable(1);
+        self.multi_start = false;
 
         self.mode = ko.observable("N/A");
         self.state = ko.observable("N/A");
@@ -155,34 +160,20 @@ $(function() {
         
         self.onBeforePrintStart = function(start_print_command) {
             console.log(self.laser_mode());
-            if (self.laser_mode() === true) {
-                showDialog("#laserStartDialog", function(dialog){
-                    OctoPrint.simpleApiCommand("latheengraver", "laserrun", { "sessionId": self.sessionId,})
+            console.log(self.multi_start);
+            if (self.multi_start === true) {
+                showDialog("#MultiStartDialog", function(dialog){
+                    OctoPrint.simpleApiCommand("latheengraver", "multirun", { "sessionId": self.sessionId, "run_count": self.run_count()})
                     .done(function(response) {
                             console.log("Command succeeded:", response);
                             dialog.modal('hide');
-                            start_print_command();
+                            //start_print_command();
+                            self.multi_start = false;
                         })
                 });
             } else {
-                showDialog("#cncStartDialog", function(dialog){
-                    OctoPrint.simpleApiCommand("latheengraver", "cncrun", { "sessionId": self.sessionId,
-                        "template": self.template(),
-                        "cut_depth": self.cut_depth(),
-                        "track_plunge": self.track_plunge(),
-                        "minZ_th": self.minZ_th(),
-                        "minZ_inc": self.minZ_inc(),
-                        "ovality": self.ovality(),
-                        "ignore_moda": self.ignore_moda()})
-                    .done(function(response) {
-                        console.log("Command succeeded:", response);
-                        dialog.modal('hide');
-                        start_print_command();
-                    })
-                    
-                });
-            }
-
+                start_print_command();
+            } 
             return false;
         };
 
@@ -1277,46 +1268,58 @@ $(function() {
         };
 
         function updateLatheengraverHomeButtonFocus() {
-            if (
-                OctoPrint.coreui.selectedTab != undefined &&
-                OctoPrint.coreui.selectedTab == "#tab_plugin_latheengraver" &&
-                OctoPrint.coreui.browserTabVisible &&
-                $(":focus").length == 0
-            ) {
+            var controlPanelFocused = 
+                $("#control_panel").is(":focus") ||
+                $("#control_panel").find(":focus").length > 0;
+
+            if (controlPanelFocused && OctoPrint.coreui.browserTabVisible) {
                 $("#infopanel").addClass("latheengraver-focus");
             } else {
                 $("#infopanel").removeClass("latheengraver-focus");
             }
-
         }
 
-
         $(document).ready(function() {
+            $("#control_panel").attr("tabindex", "0").on("click", function() {
+                $(this).focus();
+            });
+            //For multi-run
+            $(document).on("mousedown", "#job_print, .btn-files-print", function(e) {
+                if (e.ctrlKey) {
+                    self.multi_start = true;
+                    console.log("multi_start set to true");
+                } else {
+                    self.multi_start = false;
+                    console.log("multi_start set to false");
+                }
+            });
+
             updateLatheengraverHomeButtonFocus();
             $(window).on("focus blur", updateLatheengraverHomeButtonFocus);
             $(document).on("focusin focusout", updateLatheengraverHomeButtonFocus);
             $(document).on("octoprint.tabchange", updateLatheengraverHomeButtonFocus);
 
             $(this).keydown(function(e) {
-                if (OctoPrint.coreui.selectedTab != undefined &&
-                        OctoPrint.coreui.selectedTab == "#tab_plugin_latheengraver" &&
-                        OctoPrint.coreui.browserTabVisible && $(":focus").length == 0) {
+                var $focused = $(":focus");
+                var controlPanelFocused =
+                    $focused.closest("#control_panel").length > 0 ||
+                    $focused.attr("id") === "control_panel";
+
+                if (controlPanelFocused && OctoPrint.coreui.browserTabVisible) {
                     self.onKeyDown(undefined, e);
-                    
                 }
             });
-        
+
             $(this).keyup(function(e) {
                 if (self.jogmove == 2) {
-                    //send jog stop character
                     OctoPrint.control.sendGcode("CANCELJOG");
                 }
                 self.jogmove = 0;
-                // console.log("keyup");
             });
         });
     }
-
+    
+    
     // cute little hack for removing "Print" from the start button
     $('#job_print')[0].innerHTML = "<i class=\"fas\" data-bind=\"css: {'fa-print': !isPaused(), 'fa-undo': isPaused()}\"></i> <span data-bind=\"text: (isPaused() ? 'Restart' : 'Start')\">Start</span>"
 
