@@ -320,6 +320,13 @@ def on_event(_plugin, event, payload):
         _plugin.TERMINATE = False
         _plugin._printer.fake_ack()
         _plugin._logger.debug('Made it through cancel, done failed')
+        if event == Events.PRINT_DONE and _plugin.run_count and _plugin.multi:
+            #_plugin.run_count = _plugin.run_count-1
+            _plugin._start_next_print()
+        else:
+            #stop multi if we cancel the job or it fails
+            _plugin.multi = False
+            _plugin.true_idle = True
         return
 
     # Print Cancelling
