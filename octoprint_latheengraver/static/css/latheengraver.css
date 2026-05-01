@@ -106,3 +106,18 @@ _:-ms-lang(x), _:-webkit-full-screen, .fullscreen img {
     border-radius: 10px;
     transition: border-color 0.2s;
 }
+
+#control_panel:focus {
+    outline: none;
+}
+
+.btn-estop,
+.btn-estop:hover,
+.btn-estop:focus,
+.btn-estop:active {
+    background-color: red !important;
+    background-image: none !important;
+    color: white !important;
+    font-weight: bold !important;
+    border-color: darkred !important;
+}

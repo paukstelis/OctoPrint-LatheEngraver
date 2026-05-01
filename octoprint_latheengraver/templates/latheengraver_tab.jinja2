@@ -1,4 +1,3 @@
-
 {% if enableWebcam %}
 <!-- ko if: loginState.hasPermissionKo(access.permissions.WEBCAM) -->
   <div id="webcam_hls_container" tabindex="0" data-bind="visible: webcamHlsEnabled()">
@@ -229,7 +228,11 @@
       <button id="grblLaserButton" class="btn laserbtn" style="width: 140px; border: 1px solid;" data-bind="visible: laser_mode(), enable: is_operational() && !is_printing() && state() == 'Idle', click: function() { toggleWeak() }">Weak Laser</button>
       <br>
       <br>
-      <button class="btn" style="width: 140px; border: 1px solid;" data-bind="enable: is_operational(), click: function() { sendCommand('reset') }">Soft Reset</button>
+      <button class="btn" style="width: 140px; border: 1px solid;" 
+    data-bind="enable: is_operational(), 
+               click: function() { sendCommand('reset') },
+               text: is_printing() ? 'E-STOP' : 'Soft Reset',
+               css: { 'btn-estop': is_printing() }">Soft Reset</button>
       <br>
       <br>
       <button class="btn" style="width: 140px; border: 1px solid;" data-bind="enable: is_operational() && !is_printing() && state() == 'Alarm', click: function() { sendCommand('unlock') }">Unlock</button>
