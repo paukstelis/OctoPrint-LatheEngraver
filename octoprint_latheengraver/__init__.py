@@ -150,6 +150,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.run_count = 0
         self.total_runs = 0
         self.multi = False
+        self.multi_commands = []
         self.true_idle = True
         self.current_run = 1
 
@@ -1777,8 +1778,12 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.current_run += 1
         current_run = self.current_run
         self.run_count -= 1
+        
+        if self.current_run > 1 and len(self.multi_commands):
+            self._printer.commands(self.multi_commands, force=True)
+            self._logger.info("Sending between run gcode")
+            
         self._logger.info(f"Starting run {current_run} of {self.total_runs}")
-
         endtime = time.time()
         while not self._printer.is_ready():
             time.sleep(0.1)
@@ -2097,6 +2102,9 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             self.multi = True
             self.run_count = int(data["run_count"])
             self.total_runs = int(data["run_count"])
+            commands_str = data.get("multi_commands", "")
+            self.multi_commands = [cmd.strip() for cmd in commands_str.split(",") if cmd.strip()]
+            self._logger.info(f"multi_commands: {self.multi_commands}")
             self.current_run = 0
             self._start_next_print()
 

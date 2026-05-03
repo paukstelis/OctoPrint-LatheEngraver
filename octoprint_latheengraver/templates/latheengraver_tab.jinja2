@@ -344,15 +344,15 @@
     <div class="modal-body multi">
         <h4>Multi-Run Settings</h4>
          <div>
-            <label for="multi">Enable multi-run:
-               <input id="multi" type="checkbox" data-bind="checked: multi">
-               <i class="icon icon-info-sign" title="Enables multiple runs" data-toggle="tooltip"></i>
-            </label>
-         </div>
-         <div>
             <label for="run_count">Number of Runs:
             <input id="run_count" type="number" step="any" data-bind="value: run_count">
             <i class="icon icon-info-sign" title="Repeat a run this number of times." data-toggle="tooltip"></i>
+            </label>       
+         </div>
+         <div>
+            <label for="multi_commands">Between run commands:
+            <input id="multi_commands" type="text" data-bind="value: multi_commands">
+            <i class="icon icon-info-sign" title="Comma delimited list of Gcode commands to send between each run" data-toggle="tooltip"></i>
             </label>       
          </div>
     </div>

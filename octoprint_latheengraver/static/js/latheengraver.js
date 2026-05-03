@@ -59,6 +59,7 @@ $(function() {
         self.multi = ko.observable(false);
         self.run_count = ko.observable(1);
         self.multi_start = false;
+        self.multi_commands = ko.observable(null);
 
         self.mode = ko.observable("N/A");
         self.state = ko.observable("N/A");
@@ -163,7 +164,10 @@ $(function() {
             console.log(self.multi_start);
             if (self.multi_start === true) {
                 showDialog("#MultiStartDialog", function(dialog){
-                    OctoPrint.simpleApiCommand("latheengraver", "multirun", { "sessionId": self.sessionId, "run_count": self.run_count()})
+                    OctoPrint.simpleApiCommand("latheengraver", "multirun", 
+                        { "sessionId": self.sessionId,
+                          "run_count": self.run_count(),
+                          "multi_commands": self.multi_commands()})
                     .done(function(response) {
                             console.log("Command succeeded:", response);
                             dialog.modal('hide');
