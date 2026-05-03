@@ -209,29 +209,29 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.noStatusRequests = False
 
         self.bgs_filters = [
-            {"name": "Suppress status report requests", "regex": "^Send: \\?$"},
-            {"name": "Suppress acknowledgement responses", "regex": "^Recv: ok$"},
-            {"name": "Suppress status report responses", "regex": "^Recv: <.*[\\x2c|][WM]Pos:.+"},
-            {"name": "Suppress blank responses", "regex": "^Recv: $"}
+            {"name": "Suppress status report requests", "regex": "^(Send:|>>>) \\?$"},
+            {"name": "Suppress acknowledgement responses", "regex": "^(Recv:|<<<) ok$"},
+            {"name": "Suppress status report responses", "regex": "^(Recv:|<<<) <.*[\\x2c|][WM]Pos:.+"},
+            {"name": "Suppress blank responses", "regex": "^(Recv:|<<<) $"}
         ]
 
         self.octo_filters = [
             {
                 "name": "Suppress temperature messages",
-                "regex": r"(Send: (N\d+\s+)?M105)|(Recv:\s+(ok\s+([PBN]\d+\s+)*)?([BCLPR]|T\d*):-?\d+)",
+                "regex": r"(Send:|>>> (N\d+\s+)?M105)|(Recv:|<<<\s+(ok\s+([PBN]\d+\s+)*)?([BCLPR]|T\d*):-?\d+)",
             },
             {
                 "name": "Suppress SD status messages",
-                "regex": r"(Send: (N\d+\s+)?M27)|(Recv: SD printing byte)|(Recv: Not SD printing)",
+                "regex": r"(Send:|>>> (N\d+\s+)?M27)|(Recv:|<<< SD printing byte)|(Recv:|<<< Not SD printing)",
             },
             {
                 "name": "Suppress position messages",
-                "regex": r"(Send:\s+(N\d+\s+)?M114)|(Recv:\s+(ok\s+)?X:[+-]?([0-9]*[.])?[0-9]+\s+Y:[+-]?([0-9]*[.])?[0-9]+\s+Z:[+-]?([0-9]*[.])?[0-9]+\s+E\d*:[+-]?([0-9]*[.])?[0-9]+).*",
+                "regex": r"(Send:|>>>\s+(N\d+\s+)?M114)|(Recv::<<<\s+(ok\s+)?X:[+-]?([0-9]*[.])?[0-9]+\s+Y:[+-]?([0-9]*[.])?[0-9]+\s+Z:[+-]?([0-9]*[.])?[0-9]+\s+E\d*:[+-]?([0-9]*[.])?[0-9]+).*",
             },
-            {"name": "Suppress wait responses", "regex": "Recv: wait"},
+            {"name": "Suppress wait responses", "regex": "(Recv:|<<<) wait"},
             {
                 "name": "Suppress processing responses",
-                "regex": r"Recv: (echo:\s*)?busy:\s*processing",
+                "regex": r"Recv:|<<< (echo:\s*)?busy:\s*processing",
             }
         ]
 
