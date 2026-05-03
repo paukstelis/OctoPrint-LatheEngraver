@@ -150,6 +150,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.run_count = 0
         self.total_runs = 0
         self.multi = False
+        self.multi_commands = []
         self.true_idle = True
         self.current_run = 1
 
@@ -209,29 +210,29 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.noStatusRequests = False
 
         self.bgs_filters = [
-            {"name": "Suppress status report requests", "regex": "^Send: \\?$"},
-            {"name": "Suppress acknowledgement responses", "regex": "^Recv: ok$"},
-            {"name": "Suppress status report responses", "regex": "^Recv: <.*[\\x2c|][WM]Pos:.+"},
-            {"name": "Suppress blank responses", "regex": "^Recv: $"}
+            {"name": "Suppress status report requests", "regex": "^(Send:|>>>) \\?$"},
+            {"name": "Suppress acknowledgement responses", "regex": "^(Recv:|<<<) ok$"},
+            {"name": "Suppress status report responses", "regex": "^(Recv:|<<<) <.*[\\x2c|][WM]Pos:.+"},
+            {"name": "Suppress blank responses", "regex": "^(Recv:|<<<) $"}
         ]
 
         self.octo_filters = [
             {
                 "name": "Suppress temperature messages",
-                "regex": r"(Send: (N\d+\s+)?M105)|(Recv:\s+(ok\s+([PBN]\d+\s+)*)?([BCLPR]|T\d*):-?\d+)",
+                "regex": r"(Send:|>>> (N\d+\s+)?M105)|(Recv:|<<<\s+(ok\s+([PBN]\d+\s+)*)?([BCLPR]|T\d*):-?\d+)",
             },
             {
                 "name": "Suppress SD status messages",
-                "regex": r"(Send: (N\d+\s+)?M27)|(Recv: SD printing byte)|(Recv: Not SD printing)",
+                "regex": r"(Send:|>>> (N\d+\s+)?M27)|(Recv:|<<< SD printing byte)|(Recv:|<<< Not SD printing)",
             },
             {
                 "name": "Suppress position messages",
-                "regex": r"(Send:\s+(N\d+\s+)?M114)|(Recv:\s+(ok\s+)?X:[+-]?([0-9]*[.])?[0-9]+\s+Y:[+-]?([0-9]*[.])?[0-9]+\s+Z:[+-]?([0-9]*[.])?[0-9]+\s+E\d*:[+-]?([0-9]*[.])?[0-9]+).*",
+                "regex": r"(Send:|>>>\s+(N\d+\s+)?M114)|(Recv::<<<\s+(ok\s+)?X:[+-]?([0-9]*[.])?[0-9]+\s+Y:[+-]?([0-9]*[.])?[0-9]+\s+Z:[+-]?([0-9]*[.])?[0-9]+\s+E\d*:[+-]?([0-9]*[.])?[0-9]+).*",
             },
-            {"name": "Suppress wait responses", "regex": "Recv: wait"},
+            {"name": "Suppress wait responses", "regex": "(Recv:|<<<) wait"},
             {
                 "name": "Suppress processing responses",
-                "regex": r"Recv: (echo:\s*)?busy:\s*processing",
+                "regex": r"Recv:|<<< (echo:\s*)?busy:\s*processing",
             }
         ]
 
@@ -1777,8 +1778,12 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.current_run += 1
         current_run = self.current_run
         self.run_count -= 1
+        
+        if self.current_run > 1 and len(self.multi_commands):
+            self._printer.commands(self.multi_commands, force=True)
+            self._logger.info("Sending between run gcode")
+            
         self._logger.info(f"Starting run {current_run} of {self.total_runs}")
-
         endtime = time.time()
         while not self._printer.is_ready():
             time.sleep(0.1)
@@ -2097,6 +2102,9 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             self.multi = True
             self.run_count = int(data["run_count"])
             self.total_runs = int(data["run_count"])
+            commands_str = data.get("multi_commands", "")
+            self.multi_commands = [cmd.strip() for cmd in commands_str.split(",") if cmd.strip()]
+            self._logger.info(f"multi_commands: {self.multi_commands}")
             self.current_run = 0
             self._start_next_print()
 

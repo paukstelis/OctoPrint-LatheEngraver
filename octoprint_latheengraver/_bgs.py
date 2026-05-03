@@ -459,6 +459,7 @@ def process_grbl_status_msg(_plugin, msg):
                 a=_plugin.grblA,
                 b=_plugin.grblB,
                 pins=_plugin.grblActivePins,
+                feedmod=_plugin.feedRate,
                 speed=_plugin.grblSpeed,
                 power=_plugin.grblPowerLevel,
                 coord=_plugin.grblCoordinateSystem,
