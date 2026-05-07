@@ -526,9 +526,9 @@ $(function() {
             self.is_operational(data.flags.operational);
             self.isLoading(data.flags.loading);
 
-            if (self.is_printing()) {
-              self.state("Run");
-            }
+            //if (self.is_printing()) {
+            //  self.state("Run");
+            //}
 
             if (!self.is_operational()) {
               self.state("N/A");
@@ -541,7 +541,9 @@ $(function() {
 
                 if (data.state != undefined && !(self.is_printing() && data.state == "Idle")) {
                   self.state(data.state);
-                  //self.is_hold(false);
+                }
+                if (data.state != undefined && !(data.state == "Hold:0")) {
+                  self.is_hold(false);
                 }
 
                 if (data.x != undefined) self.xPos(Number.parseFloat(data.x).toFixed(2));
