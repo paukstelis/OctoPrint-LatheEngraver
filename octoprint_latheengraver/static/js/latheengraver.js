@@ -20,15 +20,15 @@ $(function() {
 
         var $body = $('body');
 
-        var $container = $('webcam_container');
+        //var $container = $('webcam_container');
         var controlPanel = $('#control_panel');
         var overridesPanel = $('#overrides_panel');
 
-        self.webcamDisableTimeout = undefined;
-        self.webcamLoaded = ko.observable(false);
-        self.webcamMjpgEnabled = ko.observable(false);
-        self.webcamHlsEnabled = ko.observable(false);
-        self.webcamError = ko.observable(false);
+        //self.webcamDisableTimeout = undefined;
+        //self.webcamLoaded = ko.observable(false);
+        //self.webcamMjpgEnabled = ko.observable(false);
+        //self.webcamHlsEnabled = ko.observable(false);
+        //self.webcamError = ko.observable(false);
 
         self.origin_axes = ko.observableArray(["Z", "X", "XZ","XZA","ALL","A","B"]);
         self.origin_axis = ko.observable("XZ");
@@ -45,6 +45,7 @@ $(function() {
         self.is_printing = ko.observable(false);
         self.is_operational = ko.observable(false);
         self.isLoading = ko.observable(undefined);
+        self.is_hold = ko.observable(false);
 
         self.template = ko.observable(false);
         self.cut_depth = ko.observable(15.0);
@@ -89,76 +90,7 @@ $(function() {
         
         self.popoutWindow = null; 
         
-
-        self._disableWebcam = function() {
-            // only disable webcam stream if tab is out of focus for more than 5s, otherwise we might cause
-            // more load by the constant connection creation than by the actual webcam stream
-
-            // safari bug doesn't release the mjpeg stream, so we just disable this for safari.
-            if (OctoPrint.coreui.browser.safari) {
-                return;
-            }
-
-            var timeout = self.settings.webcam_streamTimeout() || 5;
-            self.webcamDisableTimeout = setTimeout(function() {
-                console.log("Unloading webcam stream");
-                $("#webcam_image").attr("src", "");
-                self.webcamLoaded(false);
-            }, timeout * 1000);
-        };
-
-        self._enableWebcam = function() {
-            if (OctoPrint.coreui.selectedTab != undefined &&
-                (OctoPrint.coreui.selectedTab != "#tab_plugin_latheengraver" ||
-                    !OctoPrint.coreui.browserTabVisible)
-            ) {
-                return;
-            }
-
-            if (self.webcamDisableTimeout != undefined) {
-                clearTimeout(self.webcamDisableTimeout);
-            }
-
-            // IF disabled then we dont need to do anything
-            if (self.settings.webcam_webcamEnabled() == false) {
-                return;
-            }
-
-            // Determine stream type and switch to corresponding webcam.
-            var streamType = determineWebcamStreamType(self.settings.webcam_streamUrl());
-            if (streamType == "mjpg") {
-                self._switchToMjpgWebcam();
-            } else if (streamType == "hls") {
-                self._switchToHlsWebcam();
-            } else {
-                throw "Unknown stream type " + streamType;
-            }
-        };
-
-        self.onWebcamLoaded = function() {
-            if (self.webcamLoaded()) return;
-            self.webcamLoaded(true);
-            self.webcamError(false);
-        };
-
-        self.onWebcamErrored = function() {
-            console.log("Webcam stream failed to load/disabled");
-            if (self.webcamLoaded()) {
-              self._enableWebcam();
-              return;
-            }
-            self.webcamLoaded(false);
-            self.webcamError(true);
-        };
-
-        self.onTabChange = function(current, previous) {
-            if (current == "#tab_plugin_latheengraver") {
-                self._enableWebcam();
-            } else if (previous == "#tab_plugin_latheengraver") {
-                self._disableWebcam();
-            }
-        };
-        
+          
         self.onBeforePrintStart = function(start_print_command) {
             console.log(self.laser_mode());
             console.log(self.multi_start);
@@ -200,70 +132,6 @@ $(function() {
             });
         }
 
-        self.onBrowserTabVisibilityChange = function(status) {
-            if (status) {
-                self._enableWebcam();
-            } else {
-                self._disableWebcam();
-            }
-        };
-
-        self.webcamRatioClass = ko.pureComputed(function() {
-            if (self.settings.webcam_streamRatio() == "4:3") {
-                return "ratio43";
-            } else {
-                return "ratio169";
-            }
-        });
-
-        self._switchToMjpgWebcam = function() {
-            var webcamImage = $("#webcam_image");
-            var currentSrc = webcamImage.attr("src");
-
-            // safari bug doesn't release the mjpeg stream, so we just set it up the once
-            if (OctoPrint.coreui.browser.safari && currentSrc != undefined) {
-                return;
-            }
-
-            var newSrc = self.settings.webcam_streamUrl();
-            if (currentSrc != newSrc) {
-                if (self.settings.webcam_cacheBuster()) {
-                    if (newSrc.lastIndexOf("?") > -1) {
-                        newSrc += "&";
-                    } else {
-                        newSrc += "?";
-                    }
-                    newSrc += new Date().getTime();
-                }
-
-                self.webcamLoaded(false);
-                self.webcamError(false);
-                webcamImage.attr("src", newSrc);
-
-                self.webcamHlsEnabled(false);
-                self.webcamMjpgEnabled(true);
-            }
-        };
-
-        self._switchToHlsWebcam = function() {
-            var video = document.getElementById("webcam_hls");
-
-            // Check for native playback options: https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/canPlayType
-            if (
-                video != null &&
-                typeof video.canPlayType != undefined &&
-                video.canPlayType("application/vnd.apple.mpegurl") == "probably"
-            ) {
-                video.src = self.settings.webcam_streamUrl();
-            } else if (Hls.isSupported()) {
-                var hls = new Hls();
-                hls.loadSource(self.settings.webcam_streamUrl());
-                hls.attachMedia(video);
-            }
-
-            self.webcamMjpgEnabled(false);
-            self.webcamHlsEnabled(true);
-        };
 
         self.popOutControlPanel = function() {
             const $src = $("#control_panel");
@@ -579,6 +447,7 @@ $(function() {
         self.onBeforeBinding = function() {
             self.is_printing(self.settings.settings.plugins.latheengraver.is_printing());
             self.is_operational(self.settings.settings.plugins.latheengraver.is_operational());
+            self.is_hold(self.settings.settings.plugins.latheengraver.is_hold());
 
             self.distance(self.settings.settings.plugins.latheengraver.control_distance());
             self.settings.settings.plugins.latheengraver.control_distance.subscribe(function(newValue) {
@@ -635,7 +504,7 @@ $(function() {
         };
 
         self.onAllBound = function (allViewModels) {
-          self._enableWebcam();
+          //self._enableWebcam();
 
           window.latheengraverViewModel = self;
 
@@ -657,9 +526,9 @@ $(function() {
             self.is_operational(data.flags.operational);
             self.isLoading(data.flags.loading);
 
-            if (self.is_printing()) {
-              self.state("Run");
-            }
+            //if (self.is_printing()) {
+            //  self.state("Run");
+            //}
 
             if (!self.is_operational()) {
               self.state("N/A");
@@ -672,6 +541,9 @@ $(function() {
 
                 if (data.state != undefined && !(self.is_printing() && data.state == "Idle")) {
                   self.state(data.state);
+                }
+                if (data.state != undefined && !(data.state == "Hold:0")) {
+                  self.is_hold(false);
                 }
 
                 if (data.x != undefined) self.xPos(Number.parseFloat(data.x).toFixed(2));
@@ -715,6 +587,10 @@ $(function() {
                 }
                 // console.log("mode=" + data.mode + " state=" + data.state + " x=" + data.x + " y=" + data.y + " z=" + data.z + " power=" + data.power + " speed=" + data.speed);
                 return
+            }
+
+            if (plugin == 'latheengraver' && data.type == 'is_hold') {
+                self.is_hold(data.value);
             }
 
             if (plugin == 'latheengraver' && data.type == 'filerefresh') {
