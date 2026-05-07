@@ -229,10 +229,18 @@
       <br>
       <br>
       <button class="btn" style="width: 140px; border: 1px solid;" 
-    data-bind="enable: is_operational(), 
-               click: function() { sendCommand('reset') },
-               text: is_printing() ? 'E-STOP' : 'Soft Reset',
-               css: { 'btn-estop': is_printing() }">Soft Reset</button>
+         data-bind="enable: is_operational() && is_printing(), 
+         click: function() { sendCommand('togglefeed') },
+         text: is_hold() ? 'Restart' : 'Feed Hold',
+         
+         ">Feed Hold</button>
+      <br>
+      <br>
+      <button class="btn" style="width: 140px; border: 1px solid;" 
+         data-bind="enable: is_operational(), 
+         click: function() { sendCommand('reset') },
+         text: is_printing() ? 'E-STOP' : 'Soft Reset',
+         css: { 'btn-estop': is_printing() }">Soft Reset</button>
       <br>
       <br>
       <button class="btn" style="width: 140px; border: 1px solid;" data-bind="enable: is_operational() && !is_printing() && state() == 'Alarm', click: function() { sendCommand('unlock') }">Unlock</button>

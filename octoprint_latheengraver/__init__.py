@@ -309,6 +309,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             hasB = True,
             minZ_th = -1.0,
             track_plunge = False,
+            is_hold = False,
             
         )
 
@@ -353,7 +354,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.hideControlTab = self._settings.get_boolean(["hideControlTab"])
         self.hideGCodeTab = self._settings.get_boolean(["hideGCodeTab"])
         self.firmwareposition = self._settings.get_boolean(["firmwareposition"])
-
+        self._settings.set_boolean(["is_hold"], False)
         self.helloCommand = self._settings.get(["hello"])
         self.statusCommand = self._settings.get(["statusCommand"])
         self.dwellCommand = self._settings.get(["dwellCommand"])
@@ -1349,14 +1350,14 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 axis = match.group(1).upper()
                 if not hasattr(self, "start_pos") or not self.start_pos:
                     # no captured start position available yet - leave token unchanged
-                    self._le_logger.debug("SC_ token found but start_pos not set")
+                    self._le_logger.info("SC_ token found but start_pos not set")
                     return match.group(0)
                 val = self.start_pos.get(axis)
                 if val is None:
-                    self._le_logger.debug(f"SC_ token for unknown axis '{axis}' - leaving unchanged")
+                    self._le_logger.info(f"SC_ token for unknown axis '{axis}' - leaving unchanged")
                     return match.group(0)
-                # return axis with numeric value formatted to 3 decimals (matches assemble_command formatting)
-                return f"{axis}{float(val):.3f}"
+                
+                return f"{axis}{float(val):.6f}"
 
             new_cmd = re.sub(r"SC_([XZAB])", _replace_sc, cmd, flags=re.IGNORECASE)
             if new_cmd != cmd:
@@ -1829,7 +1830,8 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             cncrun=[],
             laserrun=[],
             multirun=[],
-            giveposition=[]
+            giveposition=[],
+            togglefeed=[],
         )
 
     def on_api_command(self, command, data):
@@ -1857,10 +1859,11 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 self._printer.commands("$X")
             return
 
+        #obsolete with added togglefeed
         if command == "hold":
             self._printer.commands("!", force=True)
             return
-        
+        #obsolete with added togglefeed
         if command == "resume":
             self._printer.commands("~", force=True)
             return
@@ -1870,7 +1873,21 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             # self._printer.fake_ack()
             self._printer.commands("M999", force=True)
             return
-
+        
+        if command == "togglefeed":
+            self._settings.set_boolean(["is_hold"], not self._settings.get_boolean(["is_hold"]))
+            #self._settings.save()
+            if self._settings.get_boolean(["is_hold"]):
+                #self._logger.info("hold is true! stopping!")
+                self._printer.commands("!", force=True)
+            else:
+                #self._logger.info("hold is false! starting!")
+                self._printer.commands("~", force=True)
+                #fake ack needed or command is never actually sent
+                self._printer.fake_ack()
+            self._plugin_manager.send_plugin_message("latheengraver", dict(type="is_hold", value=self._settings.get_boolean(["is_hold"])))
+            return
+        
         if command == "updateGrblSetting":
             self._printer.commands("${}={}".format(data.get("id"), data.get("value")))
             self.grblSettings.update({int(data.get("id")): [data.get("value"), self.grblSettingsNames.get(int(data.get("id")))]})
@@ -2102,8 +2119,12 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             self.multi = True
             self.run_count = int(data["run_count"])
             self.total_runs = int(data["run_count"])
-            commands_str = data.get("multi_commands", "")
-            self.multi_commands = [cmd.strip() for cmd in commands_str.split(",") if cmd.strip()]
+            commands_str = ""
+            try:
+                commands_str = data.get("multi_commands", "")
+                self.multi_commands = [cmd.strip() for cmd in commands_str.split(",") if cmd.strip()]
+            except:
+                command_str = ""
             self._logger.info(f"multi_commands: {self.multi_commands}")
             self.current_run = 0
             self._start_next_print()
