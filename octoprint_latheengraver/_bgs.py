@@ -709,7 +709,12 @@ def generate_metadata_for_file(_plugin, filename, notify=False, force=False):
     metadata = _plugin._file_manager.get_metadata("local", filename)
     created = os.path.getctime(_plugin._file_manager.path_on_disk("local", filename))
 
-    processing = True if metadata.get("bgs_processing") == "true" else False
+    processing = False
+    try:
+        if metadata.get("bgs_processing") == "true":
+            processing = True
+    except:
+        processing = False
     length = metadata.get("bgs_length")
     width = metadata.get("bgs_width")
     origin = metadata.get("bgs_origin")

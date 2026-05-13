@@ -887,6 +887,10 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 if not calcdiam:
                     calcdiam = .001
                 feedadjust = self.DIAM/calcdiam
+                if feedadjust < 0:
+                    feedadjust = 1
+                if not self.queue_F:
+                    self.queue_F = 100 
                 if not assembly["F"]:
                     assembly["F"] = self.queue_F*feedadjust
                 else:
@@ -1343,6 +1347,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         if cmd.upper() == "STARTCAP":
             #this will capture the starting position for a particular run
             self.start_pos = {"X": self.grblX, "Z": self.grblZ, "A": self.grblA, "B": self.grblB}
+            self._le_logger.info(self.start_pos)
             return (None, )
         
         if "SC_" in cmd.upper():
@@ -2125,6 +2130,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 self.multi_commands = [cmd.strip() for cmd in commands_str.split(",") if cmd.strip()]
             except:
                 command_str = ""
+                self.multi_commands = []
             self._logger.info(f"multi_commands: {self.multi_commands}")
             self.current_run = 0
             self._start_next_print()
