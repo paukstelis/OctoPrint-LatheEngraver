@@ -291,11 +291,7 @@ def on_event(_plugin, event, payload):
     if event == Events.PRINT_STARTED:
         if "HOLD" in _plugin.grblState.upper():
             _plugin._printer.commands(["~"], force=True)
-        elif not _plugin.grblState.upper() in ("IDLE", "CHECK"):
-            # we have to stop This
-            _plugin._logger.debug("cancelling job,state is: {0}".format(_plugin.grblState))
-            _plugin._printer.cancel_print()
-            return
+    
         
         _plugin.grblState = "Run"
         _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_state", state="Run"))
