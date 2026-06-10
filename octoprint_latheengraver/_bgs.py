@@ -292,7 +292,6 @@ def on_event(_plugin, event, payload):
         if "HOLD" in _plugin.grblState.upper():
             _plugin._printer.commands(["~"], force=True)
     
-        
         _plugin.grblState = "Run"
         _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_state", state="Run"))
 

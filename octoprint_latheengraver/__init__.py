@@ -675,7 +675,13 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                     "name": "Better Grbl Support",
                     "template": "latheengraver_wizard.jinja2",
                     "custom_bindings": True
-            }
+            },
+            {
+                    "type": "navbar",
+                    "template": "latheengraver_navbar.jinja2",
+                    "custom_bindings": True
+            },
+ 
         ]
 
 

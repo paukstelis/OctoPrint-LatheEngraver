@@ -61,7 +61,8 @@ $(function() {
         self.run_count = ko.observable(1);
         self.multi_start = false;
         self.multi_commands = ko.observable(null);
-
+        //for depth mod runs
+        self.cncrun = false;
         self.mode = ko.observable("N/A");
         self.state = ko.observable("N/A");
         self.xPos = ko.observable("N/A");
@@ -106,6 +107,23 @@ $(function() {
                             //start_print_command();
                             self.multi_start = false;
                         })
+                });
+            } 
+            if (self.cncrun === true) {
+                showDialog("#cncStartDialog", function(dialog){
+                    OctoPrint.simpleApiCommand("latheengraver", "cncrun", { "sessionId": self.sessionId,
+                        "template": self.template(),
+                        "cut_depth": self.cut_depth(),
+                        "track_plunge": self.track_plunge(),
+                        "minZ_th": self.minZ_th(),
+                        "minZ_inc": self.minZ_inc(),
+                        "ovality": self.ovality(),
+                        "ignore_moda": self.ignore_moda()})
+                    .done(function(response) {
+                        console.log("Command succeeded:", response);
+                        dialog.modal('hide');
+                        start_print_command();
+                    })         
                 });
             } else {
                 start_print_command();
@@ -1165,11 +1183,16 @@ $(function() {
             });
             //For multi-run
             $(document).on("mousedown", "#job_print, .btn-files-print", function(e) {
-                if (e.ctrlKey) {
+                if (e.ctrlKey && e.shiftKey) {
+                    self.cncrun = true;
+                    self.multi_start = false;
+                } else if (e.ctrlKey) {
                     self.multi_start = true;
+                    self.cncrun = false;
                     console.log("multi_start set to true");
                 } else {
                     self.multi_start = false;
+                    self.cncrun = false;
                     console.log("multi_start set to false");
                 }
             });
@@ -1471,6 +1494,6 @@ $(function() {
     OCTOPRINT_VIEWMODELS.push([
         LatheengraverViewModel,
         ["settingsViewModel", "loginStateViewModel", "accessViewModel", "actionCommandNotificationViewModel","filesViewModel"],
-        ["#tab_plugin_latheengraver"]
+        ["#tab_plugin_latheengraver","#navbar_plugin_latheengraver" ]
     ]);
 });
