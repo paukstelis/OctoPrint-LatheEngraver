@@ -2119,6 +2119,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             self.TERMINATE = False
             self.queued_command = ""
             self.RTCM = False
+            self.do_mod_z = False
             self.queue_X = self.grblX
             self.queue_Z = self.grblZ
             self.queue_A = self.grblA
@@ -2167,6 +2168,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             self.queued_command = ""
             self.pauses_started = False
             self.RTCM = False
+            self.do_mod_z = False
             self.queue_X = self.grblX
             self.queue_Z = self.grblZ
             self.queue_A = self.grblA

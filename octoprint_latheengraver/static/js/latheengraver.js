@@ -108,6 +108,7 @@ $(function() {
                             self.multi_start = false;
                         })
                 });
+                return false;
             } 
             if (self.cncrun === true) {
                 showDialog("#cncStartDialog", function(dialog){
@@ -125,6 +126,7 @@ $(function() {
                         start_print_command();
                     })         
                 });
+                return false;
             } else {
                 start_print_command();
             } 
