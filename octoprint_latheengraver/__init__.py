@@ -136,7 +136,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.origin = None
         self.do_ovality = False
         self.template = False
-        self.cut_depth = float(25)
+        self.cut_depth = float(0)
         self.minZ = float(0)
         self.minZ_th = float(0.0)
         self.minZ_inc = float(0)

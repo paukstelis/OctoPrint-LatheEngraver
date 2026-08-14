@@ -314,6 +314,11 @@ def on_event(_plugin, event, payload):
         _plugin._settings.set_boolean(["is_printing"], _plugin.is_printing)
         _plugin.TERMINATE = False
         _plugin._printer.fake_ack()
+        _plugin.RTCM = False
+        _plugin.template = False
+        _plugin.cut_depth = 0.0
+        _plugin.do_mod_a = False
+        _plugin.do_mod_z = False
         _plugin._logger.debug('Made it through cancel, done failed')
         if event == Events.PRINT_DONE and _plugin.run_count and _plugin.multi:
             #_plugin.run_count = _plugin.run_count-1
@@ -461,7 +466,9 @@ def process_grbl_status_msg(_plugin, msg):
                 coolant=_plugin.coolant,
                 positioning=_plugin.positioning,
                 bf=_plugin.grblBuffer,
-                laser=_plugin.laser_mode)
+                laser=_plugin.laser_mode,
+                rtcm=_plugin.RTCM,
+                depthlimit=_plugin.cut_depth)
 
     _plugin._plugin_manager.send_plugin_message(_plugin._identifier, data)
     _plugin.send_position_event(data)
