@@ -309,16 +309,11 @@ def on_event(_plugin, event, payload):
         # DO NOT INCLUDE CRITICAL THINGS HERE.THIS EVENT WILL OCCUR AFTER COMMANDS ARE ALREADY SENT
         _plugin.grblState = "Idle"
         _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_state", state="Idle"))
-        _plugin.feedRate = 0.0
         _plugin.is_printing = False
         _plugin._settings.set_boolean(["is_printing"], _plugin.is_printing)
-        _plugin.TERMINATE = False
         _plugin._printer.fake_ack()
-        _plugin.RTCM = False
-        _plugin.template = False
-        _plugin.cut_depth = 0.0
-        _plugin.do_mod_a = False
-        _plugin.do_mod_z = False
+        _plugin.run_reset()
+
         _plugin._logger.debug('Made it through cancel, done failed')
         if event == Events.PRINT_DONE and _plugin.run_count and _plugin.multi:
             #_plugin.run_count = _plugin.run_count-1
@@ -413,6 +408,10 @@ def process_grbl_status_msg(_plugin, msg):
     #need to redefine much of this if we have more axes
     hasA = _plugin._settings.get(["hasA"])
     hasB = _plugin._settings.get(["hasB"])
+    #this can be removed in future version
+    if _plugin.a_steps_flag and not _plugin._printer.is_printing():
+        _plugin._printer.commands(["$103=35.555555","$104=35.555555"])
+        _plugin.a_steps_flag = False
     match = re.search(r'<(-?[^,]+)[,|][WM]Pos:(-?[\d\.]+),(-?[\d\.]+),(-?[\d\.]+),?(-?[\d\.]+)?,?(-?[\d\.]+)?', msg)
     #response = 'X:{1} Y:{2} Z:{3} E:0 {original}'.format(*match.groups(), original=msg)
     response = 'X:{1} Y:{2} Z:{3} E:0 '.format(*match.groups())
