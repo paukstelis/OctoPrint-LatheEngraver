@@ -184,6 +184,8 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.autoSleepInterval = 20
 
         self.autoSleepTimer = time.time()
+        #flag for A axis step check
+        self.a_steps_flag = False
 
         self.autoCooldown = False
         self.autoCooldownFrequency = 60
@@ -310,6 +312,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             minZ_th = -1.0,
             track_plunge = False,
             is_hold = False,
+            a_steps_checked = False,
             
         )
 
@@ -407,6 +410,8 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.autoCooldown = self._settings.get_boolean(["autoCooldown"])
         self.autoCooldownFrequency = round(float(self._settings.get(["autoCooldownFrequency"])))
         self.autoCooldownDuration = round(float(self._settings.get(["autoCooldownDuration"])))
+
+        self.a_steps_checked = self._settings.get_boolean(["a_steps_checked"])
 
         self.invertX = -1 if self._settings.get_boolean(["invertX"]) else 1
         self.invertY = -1 if self._settings.get_boolean(["invertY"]) else 1
@@ -1733,6 +1738,10 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 settingsId = int(match.groups(1)[0])
                 settingsValue = match.groups(1)[1]
 
+                if settingsId == 103 and (settingsValue == "35.55" or settingsValue == "35.5500" or settingsValue == "35.55000"):
+                    self.a_steps_flag = True
+                    self._logger.info("A-axis steps may not be correct!")
+
                 self.grblSettings.update({settingsId: [settingsValue, self.grblSettingsNames.get(settingsId)]})
                 self._logger.debug("setting id=[{}] value=[{}] description=[{}]".format(settingsId, settingsValue, self.grblSettingsNames.get(settingsId)))
 
@@ -1812,6 +1821,31 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             notify_type="notify")
         self._plugin_manager.send_plugin_message("latheengraver", payload)
 
+    def run_reset(self):
+        #reset various parameters that will be linked to a particular run to avoid cross-over between runs
+        self.do_bangle = False
+        self.do_mod_a = False
+        self.do_mod_z = False
+        self.TERMINATE = False
+        self.queued_command = ""
+        self.RTCM = False
+        self.do_mod_z = False
+        self.queue_X = self.grblX
+        self.queue_Z = self.grblZ
+        self.queue_A = self.grblA
+        self.queue_B = self.grblB
+        self.queue_S = 0.0
+        self.queue_F = 0.0
+        self.cornlathe = False
+        self.template = False
+        self.cut_depth = 0.0
+        self.track_plunge = False
+        self.minZ_th = 0
+        self.minZ_inc = 0
+        self.do_ovality = False
+        self.ignore_moda = False
+        self.origin = None
+            
     # ~ SimpleApiPlugin
     def is_api_protected(self):
         return True
@@ -1843,6 +1877,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             multirun=[],
             giveposition=[],
             togglefeed=[],
+            ui_confirm=["c","r"]
         )
 
     def on_api_command(self, command, data):
@@ -1858,6 +1893,11 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             extra_axes = extra_axes+"A0 "
         if hasB:
             extra_axes = extra_axes+"B0"
+
+        if command == "ui_confirm":
+            comm = command["c"]
+            resp = command["r"]
+
 
         if command == "sleep":
             self._printer.commands("$SLP")
@@ -2113,21 +2153,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             return flask.jsonify({'res' : _bgs.toggle_weak(self)})
         
         if command == "multirun":
-            self.do_bangle = False
-            self.do_mod_a = False
-            self.do_mod_z = False
-            self.TERMINATE = False
-            self.queued_command = ""
-            self.RTCM = False
-            self.do_mod_z = False
-            self.queue_X = self.grblX
-            self.queue_Z = self.grblZ
-            self.queue_A = self.grblA
-            self.queue_B = self.grblB
-            self.queue_S = 0.0
-            self.queue_F = 0.0
-            self.cornlathe = False
-            
+            self.run_reset()         
             self.multi = True
             self.run_count = int(data["run_count"])
             self.total_runs = int(data["run_count"])
@@ -2144,6 +2170,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
 
         if command == "cncrun":
             self._logger.info(data)
+            self.run_reset()
             self.template = bool(data["template"])
             self.cut_depth = float(data["cut_depth"])
             self.track_plunge = bool(data["track_plunge"])
@@ -2161,38 +2188,11 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 self.minZ_inc = self.minZ_inc * -1
             if not self.template:
                 self.cut_depth = "N/A"
-            self.do_bangle = False
-            self.do_mod_a = False
-            self.do_mod_z = False
-            self.TERMINATE = False
-            self.queued_command = ""
-            self.pauses_started = False
-            self.RTCM = False
-            self.do_mod_z = False
-            self.queue_X = self.grblX
-            self.queue_Z = self.grblZ
-            self.queue_A = self.grblA
-            self.queue_B = self.grblB
-            self.queue_S = 0.0
-            self.queue_F = 0.0
-            self.cornlathe = False
+            
             return
         
         if command == "laserrun":
-            self.do_bangle = False
-            self.do_mod_a = False
-            self.do_mod_z = False
-            self.TERMINATE = False
-            self.queued_command = ""
-            self.pauses_started = False
-            self.RTCM = False
-            self.queue_X = self.grblX
-            self.queue_Z = self.grblZ
-            self.queue_A = self.grblA
-            self.queue_B = self.grblB
-            self.queue_S = 0.0
-            self.queue_F = 0.0
-            self.cornlathe = False
+            self.run_reset()
             return
         
     def send_position_event(self, data):
