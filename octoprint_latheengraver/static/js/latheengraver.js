@@ -495,6 +495,10 @@ $(function() {
             OctoPrint.simpleApiCommand("latheengraver", "clearNotifications");    
         };
 
+        self.sendWalk = function() {
+            OctoPrint.simpleApiCommand("latheengraver", "walk");
+        };
+
         self.overrideOnDataUpdaterPluginMessage = function(plugin, data) {
             if (plugin !== "action_command_notification") {
                 return;
@@ -1118,11 +1122,13 @@ $(function() {
                     break;
                 
                 case 33: // page up key
-                case 87: // w key
                     // z lift up
                    button = $("#control-yup");
                    visualizeClick = true;
                    simulateTouch = true;
+                    break;
+                case 87: // w key
+                    self.sendWalk();
                     break;
                 case 34: // page down key
                 case 83: // s key

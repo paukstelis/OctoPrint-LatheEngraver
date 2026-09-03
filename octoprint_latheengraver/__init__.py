@@ -118,6 +118,10 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.match_f = re.compile(r".*[Ff]\ *(-?[\d.]+).*")
         self.match_s = re.compile(r".*[Ss]\ *(-?[\d.]+).*")
 
+        #TESTING
+        self.walk = False
+        self.walk_counter = 10
+        self.walk_steps = 10
         #default state will be to bypass RTCM
         self.RTCM = False
         #self.bypass_queuing = False
@@ -313,6 +317,8 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             track_plunge = False,
             is_hold = False,
             a_steps_checked = False,
+            walk = False,
+            walk_steps = 10,
             
         )
 
@@ -417,6 +423,11 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.invertY = -1 if self._settings.get_boolean(["invertY"]) else 1
         self.invertZ = -1 if self._settings.get_boolean(["invertZ"]) else 1
 
+        # walk through gcode
+        self.walk = self._settings.get_boolean(["walk"])
+        self.walk_steps = self._settings.get_int(["walk_steps"])
+        self.walk_counter = self.walk_steps
+        
         self._logger.debug("axis inversion X=[{}] Y=[{}] Z=[{}]".format(self.invertX, self.invertY, self.invertZ))
 
         fluidYaml = self._settings.get(["fluidYaml"])
@@ -927,7 +938,13 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             assembly["X"], assembly["Z"] = assembly["Z"], assembly["X"]
 
         cmd = self.assemble_command(newcmd, assembly)
-        return cmd
+        if not self.walk:
+            return cmd
+        else:
+            self.walk_counter -= 1
+            if not self.walk_counter:
+                self._printer.set_job_on_hold(True)
+            return cmd
 
     def assemble_command(self, newcmd, assembly):
         cmd = newcmd
@@ -1877,6 +1894,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             multirun=[],
             giveposition=[],
             togglefeed=[],
+            walk=[],
             ui_confirm=["c","r"]
         )
 
@@ -1925,6 +1943,10 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             self._printer.commands("M999", force=True)
             return
         
+        if command == "walk":
+            self.walk_counter = self.walk_steps
+            self._printer.set_job_on_hold(False)
+
         if command == "togglefeed":
             self._settings.set_boolean(["is_hold"], not self._settings.get_boolean(["is_hold"]))
             #self._settings.save()
