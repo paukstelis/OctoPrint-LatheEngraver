@@ -55,7 +55,10 @@ $(function() {
         self.minZ_inc = ko.observable(0);
         self.ovality = ko.observable(false);
         self.ignore_moda = ko.observable(false);
-        
+        //walking
+        self.walk = ko.observable(false);
+        self.walk_steps = ko.observable(10);
+
         //for multi-run
         self.multi = ko.observable(false);
         self.run_count = ko.observable(1);
@@ -280,6 +283,12 @@ $(function() {
           }
         }
 
+        self.toggleWalk = function() {
+            self.walk(!self.walk());
+            self.sendWalk();
+            console.log("Toggling walk");
+        }
+
         self.toggleWeak = function() {
             OctoPrint.simpleApiCommand("latheengraver", "toggleWeak")
                 .done(
@@ -468,6 +477,8 @@ $(function() {
             self.is_printing(self.settings.settings.plugins.latheengraver.is_printing());
             self.is_operational(self.settings.settings.plugins.latheengraver.is_operational());
             self.is_hold(self.settings.settings.plugins.latheengraver.is_hold());
+            self.walk(self.settings.settings.plugins.latheengraver.walk());
+            self.walk_steps(self.settings.settings.plugins.latheengraver.walk_steps());
 
             self.distance(self.settings.settings.plugins.latheengraver.control_distance());
             self.settings.settings.plugins.latheengraver.control_distance.subscribe(function(newValue) {
@@ -496,7 +507,7 @@ $(function() {
         };
 
         self.sendWalk = function() {
-            OctoPrint.simpleApiCommand("latheengraver", "walk");
+            OctoPrint.simpleApiCommand("latheengraver", "walk", {"walk": self.walk(), "walk_steps":self.walk_steps()});
         };
 
         self.overrideOnDataUpdaterPluginMessage = function(plugin, data) {

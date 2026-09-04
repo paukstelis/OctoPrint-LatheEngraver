@@ -318,8 +318,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             is_hold = False,
             a_steps_checked = False,
             walk = False,
-            walk_steps = 10,
-            
+            walk_steps = 10,  
         )
 
 
@@ -1916,7 +1915,6 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             comm = command["c"]
             resp = command["r"]
 
-
         if command == "sleep":
             self._printer.commands("$SLP")
             return
@@ -1944,6 +1942,22 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             return
         
         if command == "walk":
+            #turn off walking
+            if self.walk and not bool(data["walk"]):
+                self.walk = False
+                self.walk_counter = self.walk_steps
+                self._printer.set_job_on_hold(False)
+                #make sure false in settings
+                self._settings.set_boolean(["walk"], False)
+                return
+            #turn on walking
+            if not self.walk and bool(data["walk"]):
+                self.walk_counter = int(data["walk_steps"])
+                self.walk = True
+                self._settings.set_boolean(["walk"], True)
+                return
+            #advance walking
+            self.walk_steps = int(data["walk_steps"])
             self.walk_counter = self.walk_steps
             self._printer.set_job_on_hold(False)
 

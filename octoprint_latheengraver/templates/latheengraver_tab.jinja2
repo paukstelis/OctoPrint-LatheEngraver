@@ -188,11 +188,36 @@
                  </span>
                 <span style="margin: 0px 1px 0px 1px">&nbsp;</span>
                  <span>
-                   <input type="number" value="1" style="border: 1px solid; border-radius: 5px; height: 18px; width: 50px; margin: 5px 0px 0px 0px" data-bind="textInput: distance, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }, enable: operator() != 'J'"></button>
+                   <input type="number" value="1" style="border: 1px solid; border-radius: 5px; height: 18px; width: 50px; margin: 5px 0px 0px 0px" data-bind="textInput: distance, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }, enable: operator() != 'J'">
                  </span>
                </span>
             </td>
          </tr>
+         <br>
+         <tr>
+            <td colspan=3 class="distance">
+              <span>
+                 <div>
+                   <details>
+                   <summary>Advanced Features</summary>
+                   <button class="btn" style="width: 100px; border: 1px solid;" 
+                     data-bind="enable: is_operational(), 
+                     click: toggleWalk,
+                     text: walk() ? 'Stop Walk' : 'Start Walk',     
+                     ">Start Walk</button>
+                    <button class="btn" style="width: 100px; border: 1px solid;" 
+                     data-bind="enable: is_operational() && is_printing() && walk(), 
+                     click: sendWalk,     
+                     ">Advance</button>
+
+                     <label>Walk Steps</label>
+                   <input type="number" value="1" style="border: 1px solid; border-radius: 5px; height: 18px; width: 50px; margin: 5px 0px 0px 0px" data-bind="value: walk_steps"></button>
+                   </details>
+                  </div>
+              </span>
+            </td>
+         </tr>
+
       </table>
    </span>
 
