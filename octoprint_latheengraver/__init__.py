@@ -326,7 +326,8 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             is_hold = False,
             a_steps_checked = False,
             walk = False,
-            walk_steps = 10,  
+            walk_steps = 10,
+            trinamic = false,  
         )
 
 
@@ -420,6 +421,8 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.autoSleep = self._settings.get_boolean(["autoSleep"])
         self.autoSleepInterval = round(float(self._settings.get(["autoSleepInterval"])))
 
+        self.trinamic = self._settings.get_boolean(["trinamic"])
+        
         self.autoCooldown = self._settings.get_boolean(["autoCooldown"])
         self.autoCooldownFrequency = round(float(self._settings.get(["autoCooldownFrequency"])))
         self.autoCooldownDuration = round(float(self._settings.get(["autoCooldownDuration"])))
