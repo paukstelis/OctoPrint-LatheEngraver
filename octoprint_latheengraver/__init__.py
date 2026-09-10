@@ -118,6 +118,10 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.match_f = re.compile(r".*[Ff]\ *(-?[\d.]+).*")
         self.match_s = re.compile(r".*[Ss]\ *(-?[\d.]+).*")
 
+        #TESTING
+        self.walk = False
+        self.walk_counter = 10
+        self.walk_steps = 10
         #default state will be to bypass RTCM
         self.RTCM = False
         #self.bypass_queuing = False
@@ -167,6 +171,14 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.grblSettingsNames = {}
         self.grblSettings = {}
         self.grblSettingsText = ""
+
+        self.trinamic = True
+        self.trinamic_prewarn_steps = 500
+        self.trinamic_prewarn_count = 500
+        self.trianmic_prewarn = False
+        self.trinamic_check = "M911"
+        self.trinamic_clear = "M912"
+        self.trinamic_status = {}
 
         self.ignoreErrors = False
         self.doSmoothie = False
@@ -313,7 +325,9 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             track_plunge = False,
             is_hold = False,
             a_steps_checked = False,
-            
+            walk = False,
+            walk_steps = 10,
+            trinamic = False,  
         )
 
 
@@ -407,6 +421,8 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.autoSleep = self._settings.get_boolean(["autoSleep"])
         self.autoSleepInterval = round(float(self._settings.get(["autoSleepInterval"])))
 
+        self.trinamic = self._settings.get_boolean(["trinamic"])
+
         self.autoCooldown = self._settings.get_boolean(["autoCooldown"])
         self.autoCooldownFrequency = round(float(self._settings.get(["autoCooldownFrequency"])))
         self.autoCooldownDuration = round(float(self._settings.get(["autoCooldownDuration"])))
@@ -417,6 +433,11 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.invertY = -1 if self._settings.get_boolean(["invertY"]) else 1
         self.invertZ = -1 if self._settings.get_boolean(["invertZ"]) else 1
 
+        # walk through gcode
+        self.walk = self._settings.get_boolean(["walk"])
+        self.walk_steps = self._settings.get_int(["walk_steps"])
+        self.walk_counter = self.walk_steps
+        
         self._logger.debug("axis inversion X=[{}] Y=[{}] Z=[{}]".format(self.invertX, self.invertY, self.invertZ))
 
         fluidYaml = self._settings.get(["fluidYaml"])
@@ -741,7 +762,24 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             return cmd
         
         if not self.RTCM:
-            return cmd
+            if self.trinamic:
+                self.trinamic_prewarn_count -= 1
+                if not self.trinamic_prewarn_count:
+                    self._logger.info("sending trinamic check")
+                    if not self.trianmic_prewarn:
+                        self._printer.commands([self.trinamic_check], force=True)
+                    else: #already in prewarn state, clear so we can recheck
+                        self._printer.commands([self.trinamic_clear], force=True)
+
+                    self.trinamic_prewarn_count = self.trinamic_prewarn_steps
+            if not self.walk:
+                return cmd
+            else:
+                self.walk_counter -= 1
+                if not self.walk_counter:
+                    self._printer.set_job_on_hold(True)
+                return cmd
+
         
         if self.cornlathe:
             cmd = cmd.upper()
@@ -927,7 +965,25 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             assembly["X"], assembly["Z"] = assembly["Z"], assembly["X"]
 
         cmd = self.assemble_command(newcmd, assembly)
-        return cmd
+        
+        if self.trinamic:
+            self.trinamic_prewarn_count -= 1
+            if not self.trinamic_prewarn_count:
+                self._logger.info("sending trinamic check")
+                if not self.trianmic_prewarn:
+                    self._printer.commands([self.trinamic_check], force=True)
+                else: #already in prewarn state, clear so we can recheck
+                    self._printer.commands([self.trinamic_clear], force=True)
+
+                self.trinamic_prewarn_count = self.trinamic_prewarn_steps
+
+        if not self.walk:
+            return cmd
+        else:
+            self.walk_counter -= 1
+            if not self.walk_counter:
+                self._printer.set_job_on_hold(True)
+            return cmd
 
     def assemble_command(self, newcmd, assembly):
         cmd = newcmd
@@ -1118,6 +1174,29 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
     def start_termination(self):
         #need these commands to be queued, so don't use Force
         self._printer.commands(["G0 Z5", "M5", "M30", "TERMINATE"], force=True)
+
+    def trinamic_warning(self, axis):
+        payload = dict(
+            type="simple_notify",
+            title="Temperature Warning!",
+            text=f"Stepper driver on the {axis}-axis has given a temperature pre-warning. Feedrates halved.",
+            hide=True,
+            delay=20000,
+            notify_type="warning")
+        self._plugin_manager.send_plugin_message("latheengraver", payload)
+        self.feedRate = 0.5
+        self.trinamic_prewarn = True
+
+    def trinamic_overtemp(self, axis):
+        payload = dict(
+            type="simple_notify",
+            title="Over Temperature!!",
+            text=f"The {axis}-axis is overtemperature. Feed hold has been sent to stop motion.",
+            hide=True,
+            delay=20000,
+            notify_type="error")
+        self._plugin_manager.send_plugin_message("latheengraver", payload)
+        self._printer.commands(["!"], force=True)
 
     # #-- gcode sending hook
     def hook_gcode_sending(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
@@ -1699,7 +1778,23 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
 
         if "PRB:" in line.upper():
             return line
-         
+        
+        #Checking TMC driver temp
+        if line.startswith("[TMCPREWARN:"):
+            self._logger.info("Got prewarn line")
+            matches = re.findall(r'\|([XZAB]):([OWE]?)', line)
+            if matches:
+                self.trinamic_status = {axis: value for axis, value in matches}
+                self._logger.info(self.trinamic_status)
+
+                for axis, val in self.trinamic_status.items():
+                    if val == "W":
+                        #use helper to send notification and cut speed
+                        self.trinamic_warning(axis)
+                    if val == "O":
+                        self.trinamic_overtemp(axis)
+
+            return
         # forward any messages to the action notification plugin
         if "MSG:" in line.upper():
             ignoreList = ("[MSG:'$H'|'$X' to unlock]", "[MSG:INFO: '$H'|'$X' to unlock]")
@@ -1877,6 +1972,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             multirun=[],
             giveposition=[],
             togglefeed=[],
+            walk=[],
             ui_confirm=["c","r"]
         )
 
@@ -1897,7 +1993,6 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         if command == "ui_confirm":
             comm = command["c"]
             resp = command["r"]
-
 
         if command == "sleep":
             self._printer.commands("$SLP")
@@ -1925,6 +2020,26 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
             self._printer.commands("M999", force=True)
             return
         
+        if command == "walk":
+            #turn off walking
+            if self.walk and not bool(data["walk"]):
+                self.walk = False
+                self.walk_counter = self.walk_steps
+                self._printer.set_job_on_hold(False)
+                #make sure false in settings
+                self._settings.set_boolean(["walk"], False)
+                return
+            #turn on walking
+            if not self.walk and bool(data["walk"]):
+                self.walk_counter = int(data["walk_steps"])
+                self.walk = True
+                self._settings.set_boolean(["walk"], True)
+                return
+            #advance walking
+            self.walk_steps = int(data["walk_steps"])
+            self.walk_counter = self.walk_steps
+            self._printer.set_job_on_hold(False)
+
         if command == "togglefeed":
             self._settings.set_boolean(["is_hold"], not self._settings.get_boolean(["is_hold"]))
             #self._settings.save()

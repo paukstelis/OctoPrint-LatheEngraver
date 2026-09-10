@@ -153,6 +153,8 @@
 						<input type="checkbox" data-bind="checked: settings.plugins.latheengraver.suppressM105"> Replace M105 requests with above
 						<br>
 						<input type="checkbox" data-bind="checked: settings.plugins.latheengraver.disablePolling"> Disable status polling while printing
+						<br>
+						<input type="checkbox" data-bind="checked: settings.plugins.latheengraver.trinamic"> Monitor Trinamic stepper drivers during jobs
 				</div>
 			</div>
 
@@ -187,7 +189,20 @@
 						<br>
 						<br>
 						<input type="checkbox" data-bind="checked: settings.plugins.latheengraver.ignoreErrors"> Ignore Firmware Errors (NOT RECOMMENDED)
+						<br>
+						<br>
 			</div>
+			<div>
+				<h5>Gcode Walking</h5>
+				<input type="checkbox" data-bind="checked: settings.plugins.latheengraver.walk"> Enable Gcode Walking
+				<br>
+				<br>
+
+				<label title="The number of gcode lines sent before pausing" >Walking Steps</label>
+				<input type="number" min="1" class="input-mini" data-bind="numeric, value: settings.plugins.latheengraver.walk_steps"> 
+
+			</div>
+			
 		</div>
 		<br>
 		<p>* Server restart is required for this setting change to take effect</p>
