@@ -406,16 +406,16 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
 
         self._settings.global_set_boolean(["feature", "modelSizeDetection"], not self.disableModelSizeDetection)
         self._settings.global_set_boolean(["feature", "sdSupport"], False)
-        self._settings.global_set_boolean(["serial", "neverSendChecksum"], self.neverSendChecksum)
+        self._settings.global_set_boolean(["plugins","serial_connector", "neverSendChecksum"], self.neverSendChecksum)
 
         #adjust report time
         if self.firmwareposition:
-            self._settings.global_set(["serial", "timeout", "temperature"], 20000)
-            self._settings.global_set(["serial", "timeout", "temperatureTargetSet"], 20000)
-            self._printer.commands("$481=500")
+            self._settings.global_set(["plugins","serial_connector", "timeout", "temperature"], 20000)
+            self._settings.global_set(["plugins","serial_connector", "timeout", "temperatureTargetSet"], 20000)
+            #self._printer.commands("$481=500")
         else:
-            self._settings.global_set(["serial", "timeout", "temperature"], 1)
-            self._settings.global_set(["serial", "timeout", "temperatureTargetSet"], 1)
+            self._settings.global_set(["plugins","serial_connector", "timeout", "temperature"], 1)
+            self._settings.global_set(["plugins","serial_connector", "timeout", "temperatureTargetSet"], 1)
             self._printer.commands("$481=0")  
 
         self.autoSleep = self._settings.get_boolean(["autoSleep"])
@@ -447,7 +447,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self.fluidSettings = self._settings.get(["fluidSettings"])
 
         if self.neverSendChecksum:
-            self._settings.global_set(["serial", "checksumRequiringCommands"], [])
+            self._settings.global_set(["plugins","serial_connector", "checksumRequiringCommands"], [])
 
         # initialize config.yaml disabled plugins list
         disabledPlugins = self._settings.global_get(["plugins", "_disabled"])
@@ -519,7 +519,7 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         
         
         # add pretty much all of grbl to long running commands list
-        longCmds = self._settings.global_get(["serial", "longRunningCommands"])
+        longCmds = self._settings.global_get(["plugins","serial_connector", "longRunningCommands"])
         if longCmds == None:
             longCmds = []
 
@@ -556,10 +556,11 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         if not "M9" in longCmds: longCmds.append("M9")
         if not "M30" in longCmds: longCmds.append("M30")
 
-        self._settings.global_set(["serial", "longRunningCommands"], longCmds)
-        self._settings.global_set(["serial", "maxCommunicationTimeouts", "long"], 0)
-        self._settings.global_set(["serial", "encoding"], "latin_1")
-        self._settings.global_set_boolean(["serial", "sanityCheckTools"], False)
+        self._settings.global_set(["plugins","serial_connector", "longRunningCommands"], longCmds)
+        self._settings.global_set(["plugins","serial_connector", "maxCommunicationTimeouts", "long"], 0)
+        self._settings.global_set(["plugins","serial_connector", "encoding"], "latin_1")
+        self._settings.global_set_boolean(["plugins","serial_connector", "sanityCheckTools"], False)
+        self._settings.global_set_boolean(["plugins", "serial_connector", "sanityCheckTools"], False)
 
         self._settings.global_set(["terminalFilters"], self.bgsFilters)
 
@@ -753,6 +754,10 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
          
         if cmd.upper() == "RTCM":
             self.RTCM = True
+            self.queue_X = self.grblX
+            self.queue_Z = self.grblZ
+            self.queue_A = self.grblA
+            self.queue_B = self.grblB
             self._le_logger.info("RTCM activated")
             return cmd
         
@@ -780,7 +785,6 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                     self._printer.set_job_on_hold(True)
                 return cmd
 
-        
         if self.cornlathe:
             cmd = cmd.upper()
             cmd = re.sub(r'(?i)(^|\s)C(?=\s*-?[\d.])', r'\1A', cmd)
@@ -888,16 +892,6 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
                 zmod = self.adjust_Z(self.queue_A, self.queue_Z)
                 #zmod is some difference that gets subtracted from Z based on A angle
                 #self._logger.info("Z modified by {0}".format(zmod)
-
-            if self.do_ovality:
-                #mod_z is some difference
-                mod_z = self.get_depth_mod(self.queue_A)
-                if not self.do_bangle:
-                    bangle = math.radians(self.queue_B)*-1
-                    #get the relative change in x and z based on change in z and the b angle
-                    trans_x = self.queue_X - mod_z*math.sin(bangle)
-                    trans_z = self.queue_Z - mod_z*math.cos(bangle)
-                self._logger.debug("ovality mod_z is: {}".format(mod_z))
 
             if self.do_bangle: 
                 bangle = math.radians(self.queue_B)*-1
