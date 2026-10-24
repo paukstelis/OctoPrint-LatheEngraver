@@ -406,14 +406,25 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
 
         self._settings.global_set_boolean(["feature", "modelSizeDetection"], not self.disableModelSizeDetection)
         self._settings.global_set_boolean(["feature", "sdSupport"], False)
+        ################## remove after 2.0
+        self._settings.global_set_boolean(["serial", "neverSendChecksum"], self.neverSendChecksum)
+        ##################
         self._settings.global_set_boolean(["plugins","serial_connector", "neverSendChecksum"], self.neverSendChecksum)
 
         #adjust report time
         if self.firmwareposition:
+            #####################
+            self._settings.global_set(["serial", "timeout", "temperature"], 20000)
+            self._settings.global_set(["serial", "timeout", "temperatureTargetSet"], 20000)
+            #####################
             self._settings.global_set(["plugins","serial_connector", "timeout", "temperature"], 20000)
             self._settings.global_set(["plugins","serial_connector", "timeout", "temperatureTargetSet"], 20000)
             #self._printer.commands("$481=500")
         else:
+            #####################
+            self._settings.global_set(["serial", "timeout", "temperature"], 1)
+            self._settings.global_set(["serial", "timeout", "temperatureTargetSet"], 1)
+            #####################
             self._settings.global_set(["plugins","serial_connector", "timeout", "temperature"], 1)
             self._settings.global_set(["plugins","serial_connector", "timeout", "temperatureTargetSet"], 1)
             self._printer.commands("$481=0")  
@@ -559,9 +570,11 @@ class LatheEngraverPlugin(octoprint.plugin.SettingsPlugin,
         self._settings.global_set(["plugins","serial_connector", "longRunningCommands"], longCmds)
         self._settings.global_set(["plugins","serial_connector", "maxCommunicationTimeouts", "long"], 0)
         self._settings.global_set(["plugins","serial_connector", "encoding"], "latin_1")
+        ########################
+        self._settings.global_set(["serial", "encoding"], "latin_1")
+        self._settings.global_set_boolean(["serial", "sanityCheckTools"], False)
+        ########################
         self._settings.global_set_boolean(["plugins","serial_connector", "sanityCheckTools"], False)
-        self._settings.global_set_boolean(["plugins", "serial_connector", "sanityCheckTools"], False)
-
         self._settings.global_set(["terminalFilters"], self.bgsFilters)
 
         self._settings.save()
